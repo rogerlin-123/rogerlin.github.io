@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layer 3 網路路由測驗</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定義動畫與過渡效果 */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: translateX(5px);
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        .correct-ans {
+            background-color: #d1fae5 !important; /* green-100 */
+            border-color: #10b981 !important; /* green-500 */
+            color: #065f46 !important; /* green-900 */
+        }
+        .wrong-ans {
+            background-color: #fee2e2 !important; /* red-100 */
+            border-color: #ef4444 !important; /* red-500 */
+            color: #991b1b !important; /* red-900 */
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center font-sans text-slate-800 p-4">
+
+    <!-- 測驗主容器 -->
+    <div id="app-container" class="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden fade-in">
+        
+        <!-- 頂部標題列 -->
+        <div class="bg-blue-600 text-white p-6 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    <path d="M12 10v4"></path>
+                </svg>
+                Layer 3 路由專業測驗
+            </h1>
+            <p class="text-blue-100 mt-2 text-sm md:text-base">挑戰您對 OSI 網路層、IP 與路由協定的知識</p>
+        </div>
+
+        <!-- 內容區 -->
+        <div id="content-area" class="p-6 md:p-8">
+            <!-- 歡迎畫面 (預設顯示) -->
+            <div id="start-screen" class="text-center fade-in">
+                <h2 class="text-xl font-semibold mb-4">準備好測試你的網路路由知識了嗎？</h2>
+                <ul class="text-left max-w-md mx-auto space-y-3 mb-8 text-slate-600 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        從 50 題題庫中隨機抽出 10 道單選題
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        包含 IPv4/IPv6、OSPF、BGP、子網路切割等主題
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        答題後會立即顯示正確解答與詳細解析
+                    </li>
+                </ul>
+                <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105 active:scale-95">
+                    開始測驗
+                </button>
+            </div>
+
+            <!-- 測驗畫面 (初始隱藏) -->
+            <div id="quiz-screen" class="hidden fade-in">
+                <!-- 進度條 -->
+                <div class="mb-6">
+                    <div class="flex justify-between text-sm text-slate-500 mb-2 font-medium">
+                        <span id="question-counter">問題 1 / 10</span>
+                        <span id="score-display">目前分數：0</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2.5">
+                        <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 10%"></div>
+                    </div>
+                </div>
+
+                <!-- 題目 -->
+                <h3 id="question-text" class="text-xl md:text-2xl font-bold text-slate-800 mb-6 leading-relaxed">
+                    載入題目中...
+                </h3>
+
+                <!-- 選項列表 -->
+                <div id="options-container" class="space-y-3">
+                    <!-- 選項將由 JS 動態生成 -->
+                </div>
+
+                <!-- 解析區塊 (初始隱藏) -->
+                <div id="explanation-box" class="mt-6 p-4 rounded-lg hidden text-sm md:text-base border border-blue-200 bg-blue-50">
+                    <h4 class="font-bold text-blue-800 mb-1 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        解析
+                    </h4>
+                    <p id="explanation-text" class="text-blue-900 leading-relaxed"></p>
+                </div>
+
+                <!-- 下一題按鈕 -->
+                <div class="mt-8 flex justify-end">
+                    <button id="next-btn" onclick="nextQuestion()" class="hidden bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+                        下一題 &rarr;
+                    </button>
+                    <button id="finish-btn" onclick="showResults()" class="hidden bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+                        查看結果 &rarr;
+                    </button>
+                </div>
+            </div>
+
+            <!-- 結果畫面 (初始隱藏) -->
+            <div id="result-screen" class="hidden text-center fade-in py-8">
+                <div class="mb-6">
+                    <svg class="w-20 h-20 mx-auto text-yellow-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">測驗完成！</h2>
+                    <p class="text-slate-500">你的 Layer 3 路由知識評分</p>
+                </div>
+                
+                <div class="text-6xl font-black text-blue-600 mb-2">
+                    <span id="final-score">0</span><span class="text-3xl text-slate-400 font-bold"> / 100</span>
+                </div>
+                <p id="result-message" class="text-lg font-medium mb-8 text-slate-700"></p>
+
+                <button onclick="resetQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow transition-transform transform hover:scale-105 active:scale-95">
+                    再測驗一次
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 測驗題庫資料 (Layer 3 Routing)
+        const quizData = [
+            {
+                question: "OSI 模型的第三層 (Layer 3) 稱為什麼？",
+                options: [
+                    "實體層 (Physical Layer)",
+                    "資料鏈結層 (Data Link Layer)",
+                    "網路層 (Network Layer)",
+                    "傳輸層 (Transport Layer)"
+                ],
+                answer: 2,
+                explanation: "OSI 模型的第三層是網路層 (Network Layer)。它主要負責邏輯位址（如 IP 位址）的定義、路由選擇 (Routing) 以及將封包從來源端傳送到目的端。"
+            },
+            {
+                question: "下列哪一種設備主要運作在 OSI 模型的第三層，並依據 IP 位址來轉發封包？",
+                options: [
+                    "交換器 (Switch)",
+                    "集線器 (Hub)",
+                    "路由器 (Router)",
+                    "橋接器 (Bridge)"
+                ],
+                answer: 2,
+                explanation: "路由器 (Router) 運作在第三層，它會檢查封包的標頭中的目的端 IP 位址，並查詢自己的路由表來決定最佳的轉發路徑。傳統的 Switch 主要運作在第二層 (MAC address)。"
+            },
+            {
+                question: "在路由表中，預設路由 (Default Route) 的 IPv4 網段表示法通常為何？",
+                options: [
+                    "255.255.255.255/32",
+                    "127.0.0.0/8",
+                    "0.0.0.0/0",
+                    "192.168.0.0/16"
+                ],
+                answer: 2,
+                explanation: "預設路由通常表示為 0.0.0.0/0 (或 0.0.0.0 遮罩 0.0.0.0)。當路由器在路由表中找不到匹配目的端 IP 的具體路徑時，就會將封包送往預設路由指示的閘道。"
+            },
+            {
+                question: "當一個路由器收到一個 IP 封包，發現其 TTL (Time to Live) 值為 1，且目的端並非該路由器本機，它會如何處置該封包？",
+                options: [
+                    "將 TTL 設為 0，然後繼續轉發給下一個路由器",
+                    "丟棄該封包，並向來源端發送 ICMP Time Exceeded 訊息",
+                    "將該封包廣播到所有網段",
+                    "將封包送回給來源端，不更改任何標頭資訊"
+                ],
+                answer: 1,
+                explanation: "路由器在轉發封包前會將 TTL 減 1。如果收到 TTL 為 1 的封包，減 1 後變為 0，為了防止路由迴圈，路由器會丟棄該封包並回報 ICMP Time Exceeded 給來源端 (Traceroute 就是利用這個原理運作)。"
+            },
+            {
+                question: "OSPF (Open Shortest Path First) 是一種內部網關協定 (IGP)，它主要基於哪一種演算法來計算最佳路徑？",
+                options: [
+                    "距離向量演算法 (Distance-Vector)",
+                    "貝爾曼-福特演算法 (Bellman-Ford)",
+                    "鏈路狀態演算法 (Link-State / Dijkstra)",
+                    "生成樹演算法 (Spanning Tree)"
+                ],
+                answer: 2,
+                explanation: "OSPF 屬於鏈路狀態 (Link-State) 路由協定，它使用 Dijkstra 的最短路徑優先演算法來計算出到達網路中各個節點的無迴圈拓撲圖。"
+            },
+            {
+                question: "在 IPv4 的子網路切割中，如果一個網段的 CIDR 標記為 /28，這代表該子網路最多可以提供多少個「可用」的主機 IP 位址？",
+                options: [
+                    "8",
+                    "14",
+                    "16",
+                    "30"
+                ],
+                answer: 1,
+                explanation: "/28 代表主機位元 (Host bits) 有 32 - 28 = 4 個 bits。總 IP 數為 2^4 = 16。扣除一個網路位址 (全0) 和一個廣播位址 (全1)，可用的主機 IP 數量為 16 - 2 = 14 個。"
+            },
+            {
+                question: "下列哪一個路由協定被廣泛使用於全球網際網路 (Internet) 的核心，用來連接不同的自治系統 (Autonomous System)？",
+                options: [
+                    "RIP (Routing Information Protocol)",
+                    "EIGRP (Enhanced Interior Gateway Routing Protocol)",
+                    "OSPF (Open Shortest Path First)",
+                    "BGP (Border Gateway Protocol)"
+                ],
+                answer: 3,
+                explanation: "BGP 是一種外部網關協定 (EGP)，主要負責在不同的自治系統 (AS) 之間交換路由資訊，是目前支撐網際網路運作的核心路由協定。"
+            },
+            {
+                question: "關於 ARP (Address Resolution Protocol)，下列敘述何者正確？",
+                options: [
+                    "負責將網域名稱 (Domain Name) 解析為 IP 位址",
+                    "負責將 IP 位址解析為 MAC 位址，是 L2 與 L3 溝通的重要橋樑",
+                    "負責在路由器之間交換路由表",
+                    "負責將 IPv4 位址轉換為 IPv6 位址"
+                ],
+                answer: 1,
+                explanation: "雖然 ARP 的封包是在第二層傳送，但它的功能是將第三層的 IP 位址對應到第二層的 MAC 位址。當主機或路由器要傳送封包給同網段的目標時，需要先用 ARP 查出目標的 MAC 位址。"
+            },
+            {
+                question: "IPv6 位址的長度為多少個位元 (bits)？",
+                options: [
+                    "32 bits",
+                    "64 bits",
+                    "128 bits",
+                    "256 bits"
+                ],
+                answer: 2,
+                explanation: "IPv4 的長度是 32 bits，而為了應付日益枯竭的 IP 位址，IPv6 的長度大幅擴展到了 128 bits，通常以 8 組 16 進位數字表示。"
+            },
+            {
+                question: "什麼是「靜態路由」(Static Route)？",
+                options: [
+                    "路由器自動從鄰居學習到的路由",
+                    "由網路管理員手動輸入並設定的固定路由路徑",
+                    "使用 OSPF 協定計算出來的備用路由",
+                    "會隨著網路擁塞情況自動調整路徑的機制"
+                ],
+                answer: 1,
+                explanation: "靜態路由是由網路工程師手動配置在路由器上的路徑。它的優點是不佔用額外頻寬與 CPU 資源計算路由，且較為安全；缺點是當網路拓撲改變時不會自動適應，需人工手動更改。"
+            },
+            {
+                question: "Ping 指令主要依賴於哪一種協定來檢查網路連通性？",
+                options: [
+                    "TCP",
+                    "UDP",
+                    "ICMP",
+                    "ARP"
+                ],
+                answer: 2,
+                explanation: "Ping 工具是基於 ICMP (Internet Control Message Protocol) 運作的，它發送 ICMP Echo Request 並等待接收方的 ICMP Echo Reply 以確認連通性。"
+            },
+            {
+                question: "下列哪一個 IP 位址屬於「私有 IP (Private IP)」範圍？",
+                options: [
+                    "8.8.8.8",
+                    "172.16.5.10",
+                    "203.0.113.5",
+                    "198.51.100.1"
+                ],
+                answer: 1,
+                explanation: "IPv4 私有位址範圍包括：10.0.0.0/8、172.16.0.0/12 (即 172.16.x.x - 172.31.x.x) 以及 192.168.0.0/16。172.16.5.10 落在這範圍內。"
+            },
+            {
+                question: "NAT (Network Address Translation) 的主要功能是什麼？",
+                options: [
+                    "加密網路封包以保護資料安全",
+                    "將網域名稱解析為 IP 位址",
+                    "轉換私有 IP 位址與公開 IP 位址，解決 IPv4 短缺問題",
+                    "自動分配 IP 位址給網路中的設備"
+                ],
+                answer: 2,
+                explanation: "NAT 用於在內部網路（使用私有 IP）與外部網路（使用公開 IP）之間進行位址轉換，使得多台內部設備可以共用少數（或單一）公開 IP 連上網際網路。"
+            },
+            {
+                question: "PAT (Port Address Translation) 又被稱為 NAT Overload，其運作特點為？",
+                options: [
+                    "一對一的 IP 位址轉換",
+                    "多個私有 IP 對應到單一公開 IP，並利用不同的 Port 號來區分連線",
+                    "將 MAC 位址轉換為 IP 位址",
+                    "僅用於 IPv6 與 IPv4 之間的轉換"
+                ],
+                answer: 1,
+                explanation: "PAT 允許數千個內部設備共享同一個外部公開 IP。它透過修改傳輸層的 Port 號 (TCP/UDP) 來追蹤並區分來自不同內部設備的連線。"
+            },
+            {
+                question: "CIDR 標記法中，/24 相當於下列哪一個子網路遮罩？",
+                options: [
+                    "255.0.0.0",
+                    "255.255.0.0",
+                    "255.255.255.0",
+                    "255.255.255.255"
+                ],
+                answer: 2,
+                explanation: "/24 代表子網路遮罩的前 24 個位元為 1。轉換為十進位即是 8個1.8個1.8個1.0個1，也就是 255.255.255.0。"
+            },
+            {
+                question: "若網段為 192.168.1.0/26，請問該網段的廣播位址 (Broadcast Address) 是多少？",
+                options: [
+                    "192.168.1.255",
+                    "192.168.1.63",
+                    "192.168.1.127",
+                    "192.168.1.64"
+                ],
+                answer: 1,
+                explanation: "/26 意味著子網路步長為 64 (256-192)。第一個網段為 192.168.1.0 到 192.168.1.63。其中第一個是網路位址 (.0)，最後一個是廣播位址 (.63)。"
+            },
+            {
+                question: "什麼是 VLSM (Variable Length Subnet Mask)？",
+                options: [
+                    "一種可動態調整 MTU 大小的技術",
+                    "允許在同一個主網路中使用多種不同長度的子網路遮罩，以更有效率地分配 IP",
+                    "一種在 OSPF 中用於加密的演算法",
+                    "自動化配置 IPv6 位址的機制"
+                ],
+                answer: 1,
+                explanation: "VLSM 讓網路工程師能根據不同網段的實際主機需求，劃分大小不一的子網路（例如給點對點連線 /30，給辦公室 /24），大幅減少 IP 的浪費。"
+            },
+            {
+                question: "在路由表中，AD (Administrative Distance) 值代表什麼意義？",
+                options: [
+                    "路由路徑的頻寬大小",
+                    "路由器之間的實體距離（公里）",
+                    "路由來源的可靠度或優先權，數值越小代表越優先",
+                    "封包抵達目的地的延遲時間"
+                ],
+                answer: 2,
+                explanation: "AD 是路由器用來評估不同路由來源（如直連、靜態、OSPF、BGP）可靠度的一種指標。當有多個來源提供相同的目的網段時，AD 值越小的路由會被放入路由表中。"
+            },
+            {
+                question: "一般而言，Cisco 路由器上「靜態路由 (Static Route)」的預設 AD 值為多少？",
+                options: [
+                    "0",
+                    "1",
+                    "90",
+                    "110"
+                ],
+                answer: 1,
+                explanation: "直連網路的 AD 為 0，而靜態路由的預設 AD 為 1（極高的優先權）。EIGRP 預設為 90，OSPF 預設為 110。"
+            },
+            {
+                question: "OSPF 協定的預設 Administrative Distance (AD) 值是多少？",
+                options: [
+                    "90",
+                    "100",
+                    "110",
+                    "120"
+                ],
+                answer: 2,
+                explanation: "在多數路由器廠牌 (如 Cisco) 中，OSPF 的預設 AD 值為 110。而 RIP 預設是 120，EIGRP 內部路由預設是 90。"
+            },
+            {
+                question: "在距離向量 (Distance-Vector) 路由協定中，為了防止「路由迴圈 (Routing Loop)」，常使用哪種機制確保路由器不會將學到的路由再送回給來源？",
+                options: [
+                    "Dijkstra 演算法",
+                    "水平分割 (Split Horizon)",
+                    "LSA (Link State Advertisement)",
+                    "BGP AS-Path"
+                ],
+                answer: 1,
+                explanation: "水平分割 (Split Horizon) 是一項防環機制，其規則為：路由器不會將一條路由資訊，從它「學習到該路由」的同一個介面再次廣播出去。"
+            },
+            {
+                question: "RIPv2 (Routing Information Protocol version 2) 視為無法到達 (Unreachable) 的最大跳數 (Hop Count) 是多少？",
+                options: [
+                    "15",
+                    "16",
+                    "255",
+                    "無限制"
+                ],
+                answer: 1,
+                explanation: "RIP 協定使用跳數作為 Metric。15 跳為合法路徑的極限，當跳數達到 16 跳時，RIP 認為該網段為不可達 (Infinity)，這限制了 RIP 只能用於小型網路。"
+            },
+            {
+                question: "EIGRP 協定計算最佳路徑的核心演算法稱為什麼？",
+                options: [
+                    "Bellman-Ford",
+                    "Dijkstra",
+                    "DUAL (Diffusing Update Algorithm)",
+                    "SPF (Shortest Path First)"
+                ],
+                answer: 2,
+                explanation: "EIGRP 使用 DUAL 演算法來確保快速收斂與保證無迴圈的路由路徑，並能在主路由 (Successor) 失效時，瞬間切換到備用路由 (Feasible Successor)。"
+            },
+            {
+                question: "IPv6 中的 Loopback 位址 (本機回環位址) 寫法為何？",
+                options: [
+                    "127.0.0.1",
+                    "::1",
+                    "fe80::1",
+                    "ff02::1"
+                ],
+                answer: 1,
+                explanation: "IPv4 的 Loopback 是 127.0.0.1 (或 127.x.x.x)；而在 IPv6 中，Loopback 位址被簡化表示為 ::1 (相當於 0:0:0:0:0:0:0:1)。"
+            },
+            {
+                question: "IPv6 的 Link-local 位址通常以哪一個前綴 (Prefix) 開頭？",
+                options: [
+                    "2001::/16",
+                    "fc00::/7",
+                    "fe80::/10",
+                    "ff00::/8"
+                ],
+                answer: 2,
+                explanation: "Link-local 位址 (fe80::/10 開頭) 是 IPv6 介面自動生成的位址，只能在同一區域網路（單一廣播網域）內互相溝通，路由器不會轉發來源或目的為此位址的封包。"
+            },
+            {
+                question: "IPv4 中的「廣播 (Broadcast)」機制，在 IPv6 中被哪一種傳輸方式完全取代？",
+                options: [
+                    "單播 (Unicast)",
+                    "多播 (Multicast)",
+                    "任播 (Anycast)",
+                    "以上皆非"
+                ],
+                answer: 1,
+                explanation: "IPv6 徹底廢除了廣播 (Broadcast) 機制，以提升網路效率並減少不必要的中斷。以往依賴廣播的功能（如 ARP）全部改用「多播 (Multicast)」來實現。"
+            },
+            {
+                question: "IPv6 中用來取代 IPv4 ARP 功能的協定為何？",
+                options: [
+                    "DHCPv6",
+                    "NDP (Neighbor Discovery Protocol)",
+                    "SLAAC",
+                    "IPsec"
+                ],
+                answer: 1,
+                explanation: "NDP (Neighbor Discovery Protocol) 運作於 ICMPv6 之上。它透過 Neighbor Solicitation (NS) 和 Neighbor Advertisement (NA) 訊息來解析 MAC 位址，取代了舊有的 ARP。"
+            },
+            {
+                question: "什麼是 Default Gateway (預設閘道)？",
+                options: [
+                    "負責阻擋駭客攻擊的防火牆設備",
+                    "當主機或設備要傳送封包到「不同網段」時，所必須送往的第一站路由器 IP",
+                    "負責分配動態 IP 給主機的伺服器",
+                    "交換器上的主要管理介面"
+                ],
+                answer: 1,
+                explanation: "當主機發現目的端 IP 不在自己的本地網段內時，它無法直接透過 L2 送達，必須將封包送往 Default Gateway (通常是同網段的路由器介面)，由閘道代為轉發。"
+            },
+            {
+                question: "「路由匯總」(Route Summarization) 或稱 Supernetting，其主要優點為何？",
+                options: [
+                    "增加資料傳輸的加密強度",
+                    "減少路由器路由表中的條目數量，降低記憶體與 CPU 消耗",
+                    "讓 IPv4 能夠與 IPv6 直接通訊",
+                    "增加封包的 MTU 大小"
+                ],
+                answer: 1,
+                explanation: "路由匯總能將多個連續的小網段合併為一條較大子網路遮罩的路由條目，這能有效縮減路由表大小，加快查表速度，並提升網路整體的穩定性。"
+            },
+            {
+                question: "若要將 172.16.0.0/24、172.16.1.0/24、172.16.2.0/24、172.16.3.0/24 四個網段匯總，最精確的匯總網段為何？",
+                options: [
+                    "172.16.0.0/21",
+                    "172.16.0.0/22",
+                    "172.16.0.0/23",
+                    "172.16.0.0/16"
+                ],
+                answer: 1,
+                explanation: "這四個網段在第三個八位元分別是 0(00000000), 1(00000001), 2(00000010), 3(00000011)。前 22 個 bits 都是相同的，因此匯總後為 172.16.0.0/22。"
+            },
+            {
+                question: "BGP (Border Gateway Protocol) 使用哪一個傳輸層協定及 Port 號來建立鄰居關係？",
+                options: [
+                    "UDP Port 520",
+                    "TCP Port 179",
+                    "UDP Port 161",
+                    "TCP Port 21"
+                ],
+                answer: 1,
+                explanation: "BGP 需要高度可靠的連線來交換龐大的路由表，因此它建立在 TCP 之上，使用 TCP Port 179 來與其他 BGP 路由器建立 Peer 關係。"
+            },
+            {
+                question: "在 BGP 術語中，AS (Autonomous System) 代表什麼意思？",
+                options: [
+                    "自動分配 IP 的系統",
+                    "單一管理機構（如 ISP 或大型企業）控制下的網路與路由器集合",
+                    "防止網路環路的自動演算法",
+                    "路由器內部的備援電源系統"
+                ],
+                answer: 1,
+                explanation: "自治系統 (AS) 是一個擁有統一路由策略的網路集合。網際網路基本上就是由成千上萬個互相連接的 AS 所組成的，BGP 就是用來在這些 AS 之間導航的協定。"
+            },
+            {
+                question: "iBGP 與 eBGP 的主要差別是什麼？",
+                options: [
+                    "iBGP 用於 IPv4，eBGP 用於 IPv6",
+                    "iBGP 是內部網關協定，eBGP 是外部網關協定",
+                    "iBGP 建立在同一個 AS 內的路由器之間，eBGP 建立在不同 AS 的路由器之間",
+                    "iBGP 使用 UDP，eBGP 使用 TCP"
+                ],
+                answer: 2,
+                explanation: "iBGP (Internal BGP) 是同一個自治系統內的路由器用來交換 BGP 路由；而 eBGP (External BGP) 則是用來連接不同的自治系統。"
+            },
+            {
+                question: "什麼是 PBR (Policy-Based Routing)？",
+                options: [
+                    "一種取代 BGP 的新一代路由協定",
+                    "基於 QoS 標記自動設定頻寬的機制",
+                    "允許管理員不依據目的 IP，而是根據來源 IP、Port 號或封包大小等自訂條件來決定轉發路徑的技術",
+                    "一種自動化配置 VLAN 的網路政策"
+                ],
+                answer: 2,
+                explanation: "傳統路由表只能看「目的端 IP」來決定路徑。PBR 提供了極大的靈活性，允許網路工程師強制某些特定來源的流量走特定的路徑（例如：主管的 IP 走專線，員工走一般寬頻）。"
+            },
+            {
+                question: "VRF (Virtual Routing and Forwarding) 技術的主要功能為？",
+                options: [
+                    "將實體路由器虛擬化成多個交換器",
+                    "在單一台實體路由器內，建立多張完全獨立且隔離的虛擬路由表",
+                    "將 IPv4 轉換為虛擬的 IPv6 位址",
+                    "增加路由器的硬體傳輸效能"
+                ],
+                answer: 1,
+                explanation: "VRF 類似於交換器中的 VLAN 概念，但運作在第三層。它允許一台路由器內部存在多個彼此隔離的路由表，常被 ISP 用來隔離不同客戶（VPN）的網路流量，即使客戶使用了重疊的私有 IP 也不會衝突。"
+            },
+            {
+                question: "「Floating Static Route (浮動靜態路由)」常被用作動態路由的備援機制，它的設定訣竅是？",
+                options: [
+                    "將其 Administrative Distance (AD) 值設定得比主要動態路由協定的 AD 值還要高",
+                    "將其 Metric 值設為 0",
+                    "將下一跳 IP 設為 0.0.0.0",
+                    "為其設定一個定時啟動的時間排程"
+                ],
+                answer: 0,
+                explanation: "透過將靜態路由的 AD 設得比 OSPF (110) 或 EIGRP (90) 還大 (例如 200)，這條路由平時會被隱藏在路由表外。當主線路 (動態路由) 斷線消失時，這條浮動路由就會「浮」現出來接管流量。"
+            },
+            {
+                question: "乙太網路上預設的 MTU (Maximum Transmission Unit) 大小通常是多少 bytes？",
+                options: [
+                    "512 bytes",
+                    "1024 bytes",
+                    "1500 bytes",
+                    "9000 bytes"
+                ],
+                answer: 2,
+                explanation: "標準的乙太網路 MTU 為 1500 bytes。這表示一個第三層的 IP 封包（包含 IP Header 與 Data）在不被切割 (Fragmentation) 的情況下，最大不能超過 1500 bytes。"
+            },
+            {
+                question: "當路由器收到一個長度超過出口介面 MTU 的 IPv4 封包，且該封包 IP 表頭的 DF (Don't Fragment) 位元被設定為 1 時，路由器會如何處理？",
+                options: [
+                    "無視 DF 位元，強制將封包切割後轉發",
+                    "丟棄該封包，並回傳 ICMP 'Fragmentation Needed' 訊息給來源端",
+                    "將封包壓縮後再轉發",
+                    "廣播該封包以尋找 MTU 更大的路徑"
+                ],
+                answer: 1,
+                explanation: "DF (Don't Fragment) 標記告訴路由器「絕對不准切割這個封包」。如果這時封包又太大塞不進下一個介面，路由器只好丟棄它，並透過 ICMP 告知來源端「你需要把封包弄小一點再送來」。"
+            },
+            {
+                question: "在 OSPF 階層式架構中，Area 0 (區域 0) 具有特殊的地位，它被稱為什麼？",
+                options: [
+                    "Stub Area (末梢區域)",
+                    "NSSA (Not-So-Stubby Area)",
+                    "Backbone Area (骨幹區域)",
+                    "Default Area (預設區域)"
+                ],
+                answer: 2,
+                explanation: "Area 0 是 OSPF 的 Backbone Area (骨幹區域)。在多區域的 OSPF 設計中，所有其他的非骨幹區域（如 Area 1, Area 2）都必須直接與 Area 0 連接，以便正確地傳遞路由資訊。"
+            },
+            {
+                question: "在 OSPF 中，負責連接口「骨幹區域 (Area 0)」與「非骨幹區域」的路由器稱為什麼角色？",
+                options: [
+                    "DR (Designated Router)",
+                    "BDR (Backup Designated Router)",
+                    "ASBR (Autonomous System Boundary Router)",
+                    "ABR (Area Border Router)"
+                ],
+                answer: 3,
+                explanation: "ABR (區域邊界路由器) 介於不同的 OSPF Area 之間（至少其中一個是 Area 0）。它負責匯整區域內的 LSA，並轉換為 Type 3 LSA 傳遞給其他區域。"
+            },
+            {
+                question: "路由器收到封包時，若路由表內有多條路徑符合目的 IP，它會依據什麼原則來挑選要轉發的路由條目？",
+                options: [
+                    "Lowest Metric (最低成本優先)",
+                    "Shortest Path (最短路徑優先)",
+                    "Longest Prefix Match (最長前綴匹配原則)",
+                    "Lowest AD (最低管理距離)"
+                ],
+                answer: 2,
+                explanation: "路由器查表的最絕對規則是「最長前綴匹配」(Longest Prefix Match)。如果路由表有 10.0.0.0/8 和 10.1.1.0/24，當封包要去 10.1.1.5 時，路由器會選擇 /24 遮罩較長、最精確的那一條路徑。如果長度一樣，才會去比較 AD 和 Metric。"
+            },
+            {
+                question: "OSPF 協定透過傳送哪一種封包來發現鄰居 (Neighbors) 並維持鄰接關係？",
+                options: [
+                    "LSA 封包",
+                    "Hello 封包",
+                    "Update 封包",
+                    "Query 封包"
+                ],
+                answer: 1,
+                explanation: "OSPF 路由器會定期發送 Hello 封包 (預設 10 秒) 來尋找同網段的其他 OSPF 路由器，建立鄰居關係，並作為 Keepalive 確保鄰居仍然存活。"
+            },
+            {
+                question: "IPv6 支援一種稱為「Anycast (任播)」的傳輸方式，其特性為何？",
+                options: [
+                    "將封包發送給網段內的所有主機",
+                    "將封包發送給多台設定相同 Anycast IP 設備中的「網路拓撲距離最近」的那一台",
+                    "用於加密兩個節點之間的連線",
+                    "專門保留給多媒體串流使用"
+                ],
+                answer: 1,
+                explanation: "Anycast 允許一組伺服器配置完全相同的 IP 位址（常見於 DNS 根伺服器或 CDN）。路由系統會自動將使用者的請求導向距離最近（依據路由 Metric）的那一台伺服器，達到負載平衡與加速的效果。"
+            },
+            {
+                question: "IPv6 中的 SLAAC (Stateless Address Autoconfiguration) 提供了什麼便利性？",
+                options: [
+                    "讓主機在沒有 DHCPv6 伺服器的情況下，能透過路由器發送的 RA 訊息自動配置自己的 IPv6 位址",
+                    "自動將 IPv4 封包打包進入 IPv6 隧道",
+                    "讓網路設備能自動發現 MTU 大小",
+                    "提供強制性的防火牆存取控制列表"
+                ],
+                answer: 0,
+                explanation: "SLAAC (無狀態地址自動配置) 是 IPv6 的核心特色。主機會監聽路由器發布的 Router Advertisement (RA) 取得網段前綴，然後自己隨機生成（或使用 EUI-64 轉換 MAC）後半段的介面 ID，組成完整的 IPv6 位址。"
+            },
+            {
+                question: "請問 10.0.0.0 到 10.255.255.255 這個私有 IP 範圍，在傳統的 Classful 定義中屬於哪一類 (Class)？",
+                options: [
+                    "Class A",
+                    "Class B",
+                    "Class C",
+                    "Class D"
+                ],
+                answer: 0,
+                explanation: "傳統 IP 分類中，首位元組為 1~126 的屬於 Class A。10.x.x.x 網段屬於 Class A 私有 IP。172.16~31 是 Class B 私有，192.168.x.x 是 Class C 私有。"
+            },
+            {
+                question: "當我們提到路由器的「轉發層面 (Forwarding Plane 或 Data Plane)」時，它主要負責什麼工作？",
+                options: [
+                    "與鄰居建立 OSPF 鄰居關係並計算路由表",
+                    "管理員透過 SSH 登入進行設備設定",
+                    "依據已經建立好的路由表/FIB，將封包從輸入介面高速交換到輸出介面",
+                    "發送 SNMP 監控封包"
+                ],
+                answer: 2,
+                explanation: "現代路由器在架構上分為控制層面 (Control Plane, 負責計算路由、執行協定如 BGP/OSPF) 與轉發/資料層面 (Forwarding Plane, 負責用硬體晶片 ASIC 依據 FIB 快速搬運封包)。"
+            },
+            {
+                question: "什麼是 HSRP (Hot Standby Router Protocol) 的主要用途？",
+                options: [
+                    "提升設備內部的散熱效率",
+                    "在區域網路中提供「預設閘道 (Default Gateway)」的容錯備援 (Redundancy)",
+                    "用來加密路由器之間的 VPN 通道",
+                    "自動分配 VLAN ID"
+                ],
+                answer: 1,
+                explanation: "HSRP 是 Cisco 開發的協定 (標準協定為 VRRP)。它允許多台實體路由器共用一個「虛擬 IP (VIP)」。使用者的 Default Gateway 設為 VIP，當主路由器當機時，備援路由器會無縫接管該 VIP，網路不會中斷。"
+            },
+            {
+                question: "在 TCP/IP 封包封裝的過程中，當資料從傳輸層 (Transport Layer) 往下交給網路層 (Network Layer) 時，網路層會為其加上什麼表頭 (Header)？",
+                options: [
+                    "MAC Header (含來源與目的 MAC)",
+                    "TCP Header (含來源與目的 Port)",
+                    "IP Header (含來源與目的 IP)",
+                    "Ethernet Trailer (FCS)"
+                ],
+                answer: 2,
+                explanation: "封裝過程中，網路層 (Layer 3) 的職責是將上層送來的 Segment (片段) 加上 IP Header，成為 IP Packet (封包)。IP 表頭包含了最重要的 Source IP 和 Destination IP。"
+            },
+            {
+                question: "關於 BGP 的 AS-Path 屬性，下列敘述何者正確？",
+                options: [
+                    "它是一種用來計算網路頻寬的數值",
+                    "它記錄了路由封包經過的所有自治系統 (AS) 號碼，是一種防迴圈機制",
+                    "它是 iBGP 專用的加密金鑰路徑",
+                    "它的數值越長代表路由越優"
+                ],
+                answer: 1,
+                explanation: "AS-Path 是 BGP 最重要的路徑屬性之一。每當路由傳遞離開一個 AS 時，該 AS 號碼就會被加入列表中。若路由器發現收到的路由包含自己的 AS 號碼，就會拒絕接收，藉此防止路由迴圈。且 AS-Path 越短的路由通常優先權越高。"
+            },
+            {
+                question: "當兩台直接連線的路由器介面，一端配置為 192.168.1.1/30，請問另一端應該配置什麼 IP 才能在同一個子網內正常通訊？",
+                options: [
+                    "192.168.1.0/30",
+                    "192.168.1.2/30",
+                    "192.168.1.3/30",
+                    "192.168.1.4/30"
+                ],
+                answer: 1,
+                explanation: "/30 的子網路步長為 4。192.168.1.0/30 這個網段的範圍是 0~3。其中 .0 是網路位址，.3 是廣播位址。因此能用的主機 IP 只有 .1 和 .2。既然一端是 .1，另一端必須是 192.168.1.2/30。"
+            }
+        ];
+
+        // 應用程式狀態變數
+        let availableQuestions = []; // 不重複題庫池 (抽牌堆)
+        let currentQuizSet = []; // 存放本次測驗隨機抽出的 10 題
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        // DOM 元素參考
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const questionCounter = document.getElementById('question-counter');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressBar = document.getElementById('progress-bar');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const explanationBox = document.getElementById('explanation-box');
+        const explanationText = document.getElementById('explanation-text');
+        const nextBtn = document.getElementById('next-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const finalScore = document.getElementById('final-score');
+        const resultMessage = document.getElementById('result-message');
+
+        // 開始測驗
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            quizScreen.classList.add('fade-in');
+            
+            // 採用「抽牌堆」邏輯：如果可用題庫不足 10 題，則重新填滿並徹底洗牌
+            if (availableQuestions.length < 10) {
+                availableQuestions = [...quizData];
+                
+                // 使用 Web Crypto API 進行更高品質的洗牌 (取代 Math.random)
+                for (let i = availableQuestions.length - 1; i > 0; i--) {
+                    const randomBuffer = new Uint32Array(1);
+                    window.crypto.getRandomValues(randomBuffer);
+                    const j = randomBuffer[0] % (i + 1);
+                    [availableQuestions[i], availableQuestions[j]] = [availableQuestions[j], availableQuestions[i]];
+                }
+            }
+            
+            // 從可用題庫中抽出 10 題 (並從池中移除，保證連續 5 次測驗的 50 題完全不重複)
+            currentQuizSet = availableQuestions.splice(0, 10);
+
+            // 重置狀態
+            currentQuestionIndex = 0;
+            score = 0;
+            updateScoreDisplay();
+            loadQuestion();
+        }
+
+        // 載入當前題目
+        function loadQuestion() {
+            // 重置 UI 狀態
+            answered = false;
+            explanationBox.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            finishBtn.classList.add('hidden');
+            optionsContainer.innerHTML = ''; // 清空選項
+
+            const currentData = currentQuizSet[currentQuestionIndex];
+            
+            // 更新進度與題目文字
+            questionCounter.innerText = `問題 ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
+            progressBar.style.width = `${((currentQuestionIndex + 1) / currentQuizSet.length) * 100}%`;
+            questionText.innerText = `${currentQuestionIndex + 1}. ${currentData.question}`;
+
+            // 1. 動態生成選項前先進行洗牌 (改用 Crypto API 增加選項隨機度)
+            let shuffledOptions = currentData.options.map((text, index) => ({ text, originalIndex: index }));
+            for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                const randomBuffer = new Uint32Array(1);
+                window.crypto.getRandomValues(randomBuffer);
+                const j = randomBuffer[0] % (i + 1);
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+            }
+
+            // 2. 動態生成打亂後的選項
+            shuffledOptions.forEach((optionObj, displayIndex) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn w-full text-left p-4 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-300 font-medium text-slate-700 flex justify-between items-center';
+                
+                // 記錄原始索引以確保能正確判斷答案
+                button.dataset.originalIndex = optionObj.originalIndex; 
+                
+                button.innerHTML = `
+                    <span>${String.fromCharCode(65 + displayIndex)}. ${optionObj.text}</span>
+                    <div class="icon-container hidden w-6 h-6 rounded-full flex items-center justify-center text-white"></div>
+                `;
+                button.onclick = () => selectOption(optionObj.originalIndex, displayIndex);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        // 處理選項點擊
+        function selectOption(selectedOriginalIndex, selectedDisplayIndex) {
+            if (answered) return; // 防止重複作答
+            answered = true;
+
+            const currentData = currentQuizSet[currentQuestionIndex];
+            const isCorrect = (selectedOriginalIndex === currentData.answer);
+            const allButtons = optionsContainer.querySelectorAll('.option-btn');
+
+            // 禁用所有按鈕
+            allButtons.forEach((btn, displayIdx) => {
+                btn.disabled = true;
+                btn.classList.remove('hover:border-blue-300', 'cursor-pointer');
+                
+                const iconContainer = btn.querySelector('.icon-container');
+                iconContainer.classList.remove('hidden');
+
+                // 取出按鈕綁定的原始索引
+                const btnOriginalIndex = parseInt(btn.dataset.originalIndex);
+
+                // 標示正確答案
+                if (btnOriginalIndex === currentData.answer) {
+                    btn.classList.add('correct-ans');
+                    iconContainer.classList.add('bg-green-500');
+                    iconContainer.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                } 
+                // 標示錯誤的選擇
+                else if (displayIdx === selectedDisplayIndex && !isCorrect) {
+                    btn.classList.add('wrong-ans');
+                    iconContainer.classList.add('bg-red-500');
+                    iconContainer.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                }
+                else {
+                    btn.classList.add('opacity-50');
+                }
+            });
+
+            // 計算分數 (因為變成10題，改回每題10分)
+            if (isCorrect) {
+                score += 10;
+                updateScoreDisplay();
+            }
+
+            // 顯示解析
+            explanationText.innerText = currentData.explanation;
+            explanationBox.classList.remove('hidden');
+            explanationBox.classList.add('fade-in');
+
+            // 顯示下一題或完成按鈕
+            if (currentQuestionIndex < currentQuizSet.length - 1) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.classList.add('fade-in');
+            } else {
+                finishBtn.classList.remove('hidden');
+                finishBtn.classList.add('fade-in');
+            }
+        }
+
+        // 載入下一題
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // 更新右上角分數顯示
+        function updateScoreDisplay() {
+            scoreDisplay.innerText = `目前分數：${score}`;
+        }
+
+        // 顯示最終結果
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            resultScreen.classList.add('fade-in');
+
+            finalScore.innerText = score;
+
+            // 依據分數給予不同評語
+            if (score === 100) {
+                resultMessage.innerText = "太完美了！你是網路路由大師 (Network Routing Master)！🏆";
+                resultMessage.className = "text-xl font-bold mb-8 text-green-600";
+            } else if (score >= 80) {
+                resultMessage.innerText = "非常棒！你對 OSI 第三層的觀念相當紮實。🚀";
+                resultMessage.className = "text-xl font-bold mb-8 text-blue-600";
+            } else if (score >= 60) {
+                resultMessage.innerText = "及格邊緣！基本概念不錯，但還可以再多複習一些進階協定。📚";
+                resultMessage.className = "text-xl font-bold mb-8 text-yellow-600";
+            } else {
+                resultMessage.innerText = "看來 Layer 3 路由對你來說還有些陌生，建議重新複習 CCNA 或網路基礎喔！💪";
+                resultMessage.className = "text-xl font-bold mb-8 text-red-500";
+            }
+        }
+
+        // 重新測驗
+        function resetQuiz() {
+            resultScreen.classList.add('hidden');
+            startQuiz(); // 直接重啟測驗
+        }
+    </script>
+</body>
+</html>

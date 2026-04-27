@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP / Subnet 計算機</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 40px; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 500px; }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 1.5rem; }
+        .input-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        button:hover { background-color: #2980b9; }
+        .result { margin-top: 20px; display: none; border-top: 2px solid #eee; padding-top: 20px; }
+        .result-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
+        .label { color: #7f8c8d; font-weight: 500; }
+        .value { color: #2c3e50; font-family: monospace; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>IP Subnet 計算機</h2>
+    <div class="input-group">
+        <label>輸入 IP / CIDR</label>
+        <input type="text" id="cidrInput" placeholder="例如: 192.168.1.1/24" value="192.168.1.1/24">
+    </div>
+    <button onclick="calculate()">計算轉換</button>
+
+    <div class="result" id="resultArea">
+        <div class="result-item"><span class="label">子網路遮罩 (Mask):</span><span class="value" id="resMask"></span></div>
+        <div class="result-item"><span class="label">網路位址 (Network):</span><span class="value" id="resNet"></span></div>
+        <div class="result-item"><span class="label">廣播位址 (Broadcast):</span><span class="value" id="resBcast"></span></div>
+        <div class="result-item"><span class="label">可用主機範圍:</span><span class="value" id="resRange"></span></div>
+        <div class="result-item"><span class="label">總主機數:</span><span class="value" id="resCount"></span></div>
+    </div>
+</div>
+
+<script>
+    function ipToLong(ip) {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    }
+
+    function longToIp(long) {
+        return [ (long >>> 24) & 0xFF, (long >>> 16) & 0xFF, (long >>> 8) & 0xFF, long & 0xFF ].join('.');
+    }
+
+    function calculate() {
+        const input = document.getElementById('cidrInput').value.trim();
+        const parts = input.split('/');
+        
+        if (parts.length !== 2) {
+            alert("格式錯誤！請輸入正確的 CIDR 格式 (如 10.0.0.1/24)");
+            return;
+        }
+
+        const ipStr = parts[0];
+        const prefix = parseInt(parts[1], 10);
+
+        if (prefix < 0 || prefix > 32) {
+            alert("遮罩長度必須在 0 到 32 之間");
+            return;
+        }
+
+        const ipLong = ipToLong(ipStr);
+        const maskLong = (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        const netLong = (ipLong & maskLong) >>> 0;
+        const bcastLong = (netLong | (~maskLong)) >>> 0;
+
+        const hostCount = prefix <= 30 ? (bcastLong - netLong - 1) : (prefix === 31 ? 2 : 1);
+        const firstHost = prefix <= 30 ? longToIp(netLong + 1) : longToIp(netLong);
+        const lastHost = prefix <= 30 ? longToIp(bcastLong - 1) : longToIp(bcastLong);
+
+        // 顯示結果
+        document.getElementById('resMask').innerText = longToIp(maskLong);
+        document.getElementById('resNet').innerText = longToIp(netLong) + " /" + prefix;
+        document.getElementById('resBcast').innerText = longToIp(bcastLong);
+        document.getElementById('resRange').innerText = `${firstHost} - ${lastHost}`;
+        document.getElementById('resCount').innerText = hostCount.toLocaleString();
+        
+        document.getElementById('resultArea').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
