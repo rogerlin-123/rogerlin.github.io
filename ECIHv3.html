@@ -33,7 +33,7 @@
 
         .container {
             width: 100%;
-            max-width: 980px; /* 放寬容器，確保兩側內容有足夠空間平行顯示 */
+            max-width: 980px;
             background: white;
             padding: 30px;
             border-radius: 12px;
@@ -48,12 +48,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: nowrap; /* 強制左右兩個區塊不換行，保持平行 */
+            flex-wrap: nowrap;
             gap: 15px;
         }
 
         header > div:first-child {
-            flex: 1; /* 讓左側標題區塊自適應剩餘空間 */
+            flex: 1;
             min-width: 0;
         }
 
@@ -63,8 +63,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            flex-wrap: nowrap; /* 確保按鈕與計分板保持在同一行 */
-            flex-shrink: 0; /* 防止按鈕區塊被過度擠壓 */
+            flex-wrap: nowrap;
+            flex-shrink: 0;
         }
 
         .btn-action {
@@ -163,7 +163,7 @@
             color: #856404; font-weight: 600; margin-top: 10px;
         }
 
-        /* Question Action Buttons (Translate, Flag, Export, Nav) */
+        /* Question Action Buttons */
         .btn-translate {
             background: var(--warning); color: #fff; border: none; padding: 4px 10px;
             border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold;
@@ -275,7 +275,7 @@
             padding: 2px 6px; font-family: monospace; font-weight: bold; color: #2c3e50;
         }
 
-        /* Modal Styles (Review & Login) */
+        /* Modal Styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6); z-index: 2000;
@@ -300,7 +300,7 @@
         .btn-close:hover { color: var(--danger); transform: scale(1.1); }
         .review-grid {
             display: grid; 
-            grid-template-columns: repeat(10, 1fr); /* 強制設定為 10 列 */
+            grid-template-columns: repeat(10, 1fr);
             gap: 10px;
             overflow-y: auto; 
             padding-right: 10px;
@@ -323,7 +323,6 @@
             text-align: center;
         }
 
-        /* RWD 應對手機小螢幕 */
         @media (max-width: 850px) {
             header {
                 flex-direction: column;
@@ -332,7 +331,7 @@
             }
             .header-actions {
                 width: 100%;
-                flex-wrap: wrap; /* 手機畫面再允許換行 */
+                flex-wrap: wrap;
                 justify-content: space-between;
             }
         }
@@ -340,7 +339,7 @@
 </head>
 <body>
 
-<!-- 初始畫面：自動載入畫面 -->
+<!-- 初始畫面 -->
 <div class="container" id="loading-screen">
     <div class="loader-spinner" id="spinner"></div>
     <h2 style="color: var(--primary);" id="loading-title">⚙️ 題庫資料擷取中...</h2>
@@ -350,7 +349,7 @@
     <div id="error-msg" style="color: var(--danger); margin-top: 20px; font-weight: bold;"></div>
 </div>
 
-<!-- 登入視窗 Modal -->
+<!-- 登入視窗 -->
 <div class="modal-overlay" id="login-modal" style="display: none; z-index: 3000;">
     <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
         <h3 style="color: var(--primary); margin-top: 0; font-size: 1.5em;">👋 歡迎來到模擬題庫</h3>
@@ -363,7 +362,7 @@
     </div>
 </div>
 
-<!-- 測驗畫面：解析與登入完成後顯示 -->
+<!-- 測驗畫面 -->
 <div class="container" id="quiz-screen" style="display: none;">
     <header>
         <div>
@@ -406,7 +405,7 @@
     </div>
 </div>
 
-<!-- 檢視紀錄的 Modal 視窗 -->
+<!-- 檢視紀錄 Modal -->
 <div class="modal-overlay" id="review-modal" onclick="if(event.target===this) closeReview()">
     <div class="modal-content">
         <div class="modal-header">
@@ -420,19 +419,18 @@
 </div>
 
 <script>
-    // ✅ 您提供的 Google Apps Script API 網址
+    // ✅ Google Apps Script API 網址
     const API_URL = "https://script.google.com/macros/s/AKfycby4bPmq9mBiclIJccfSft4uqvNGGOfOq8QkNUDb_p8W4VMSNoR0n8TBNpD46z33hBt9/exec";
     
     let rawData = [];
     let currentIdx = 0; 
     let userState = [];
     let currentUserId = "";
-    let saveTimeout = null; // 用於延遲儲存的計時器 (Debounce)
+    let saveTimeout = null; 
 
-    // --- 1. 自動載入同目錄下的 DOCX 檔案 ---
+    // --- 1. 自動載入 DOCX ---
     window.onload = function() {
         const targetFilename = './ECIHv3.docx';
-        
         try {
             fetch(targetFilename)
                 .then(response => {
@@ -447,7 +445,7 @@
                     showFallbackUpload(targetFilename, error.message);
                 });
         } catch (error) {
-            console.error("Fetch API 執行失敗 (可能處於沙盒預覽環境):", error);
+            console.error("Fetch API 執行失敗:", error);
             showFallbackUpload(targetFilename, error.message);
         }
     };
@@ -456,7 +454,6 @@
         document.getElementById('spinner').style.display = 'none';
         document.getElementById('loading-title').innerText = "⚠️ 題庫載入失敗";
         document.getElementById('loading-subtitle').style.display = 'none';
-        
         document.getElementById('error-msg').innerHTML = 
             `無法在伺服器找到 <b>${filename}</b>。<br>
              <span style="font-size: 0.85em; color: #555;">(錯誤詳情: ${errMsg})</span><br><br>
@@ -469,7 +466,6 @@
         if (input.files.length === 0) return;
         const file = input.files[0];
         document.getElementById('error-msg').innerHTML = "<span style='color:#3498db'>讀取中，請稍候...</span>";
-        
         const reader = new FileReader();
         reader.onload = function(e) {
             JSZip.loadAsync(e.target.result)
@@ -495,7 +491,6 @@
         return map[val] || val;
     }
 
-    // --- 核心：解析 Word XML ---
     function parseWordXML(xmlString) {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -533,13 +528,11 @@
                         let val = colorNode[0].getAttribute("w:val");
                         if (val && val !== "auto") rFontColor = "#" + val;
                     }
-
                     let highlightList = rPrList[0].getElementsByTagName("w:highlight");
                     if (highlightList.length > 0) {
                         let val = highlightList[0].getAttribute("w:val");
                         if (val && val !== "none") { rHighlighted = true; rBgColor = val; }
                     }
-
                     let shdList = rPrList[0].getElementsByTagName("w:shd");
                     if (shdList.length > 0) {
                         let fill = shdList[0].getAttribute("w:fill");
@@ -580,10 +573,8 @@
                         let cssBg = mapWordColor(tp.bgColor);
                         styleStr += `background-color: ${cssBg}; `;
                     }
-                    
                     if (styleStr) currentLineHtml += `<span style="${styleStr}">${escapeHtml(tp.text)}</span>`;
                     else currentLineHtml += escapeHtml(tp.text);
-
                     if (tp.isHighlighted && tp.text.trim().length > 0) currentLineHighlight = true;
                 }
             }
@@ -603,7 +594,6 @@
             let htmlText = lineObj.htmlText;
             let isHighlighted = lineObj.isHighlighted;
 
-            // 忽略原有的題組標籤
             if (text.match(/Exam.*Part/i) || text.includes("Question 100") || text.includes("Question 205")) {
                 return;
             }
@@ -644,16 +634,14 @@
         rawData = questions;
         userState = new Array(rawData.length).fill(null);
         
-        // 檔案載入完畢，隱藏載入畫面
         document.getElementById('loading-screen').style.display = 'none';
 
-        // 方案B：檢查 localStorage 是否有儲存的 ID (關閉瀏覽器也不會忘記)
         const savedUserId = localStorage.getItem('ecih_v3_userid');
         if (savedUserId) {
             document.getElementById('userid-input').value = savedUserId;
-            startWithUserId(); // 發現有紀錄，自動觸發登入
+            startWithUserId(); 
         } else {
-            document.getElementById('login-modal').style.display = 'flex'; // 沒紀錄才顯示登入視窗
+            document.getElementById('login-modal').style.display = 'flex'; 
         }
     }
 
@@ -665,14 +653,11 @@
             return;
         }
         currentUserId = uid;
-
-        // 方案B：將 ID 儲存到 localStorage 中
         localStorage.setItem('ecih_v3_userid', currentUserId);
 
         document.getElementById('display-userid').textContent = currentUserId;
         document.getElementById('login-modal').style.display = 'none';
 
-        // 重新顯示載入畫面，變更文字為雲端讀取
         document.getElementById('loading-screen').style.display = 'block';
         document.getElementById('spinner').style.display = 'block';
         document.getElementById('loading-title').innerText = "☁️ 正在連線雲端資料庫...";
@@ -682,6 +667,31 @@
     }
 
     async function loadProgressFromCloud() {
+        // [新增] 離線重試機制：若有未同步的離線資料，優先載入並嘗試上傳
+        const isUnsynced = localStorage.getItem('ecih_v3_unsynced') === 'true';
+        if (isUnsynced) {
+            const backupPayload = localStorage.getItem('ecih_v3_offline_backup');
+            if (backupPayload) {
+                try {
+                    const parsed = JSON.parse(backupPayload);
+                    const data = JSON.parse(parsed.progressData);
+                    if (data.state && data.state.length === rawData.length) {
+                        userState = data.state;
+                        currentIdx = data.currentIdx || 0;
+                        document.getElementById('sync-status').innerText = "☁️ 已載入離線暫存，準備同步...";
+                        
+                        document.getElementById('loading-screen').style.display = 'none';
+                        document.getElementById('quiz-screen').style.display = 'block';
+                        initQuiz();
+                        
+                        // 嘗試推上雲端
+                        triggerCloudSync();
+                        return;
+                    }
+                } catch(e) { console.error("解析離線備份失敗", e); }
+            }
+        }
+
         try {
             const response = await fetch(`${API_URL}?userId=${encodeURIComponent(currentUserId)}`);
             const result = await response.json();
@@ -708,12 +718,12 @@
         }
     }
 
-    // --- 3. 雲端自動儲存 (Debounce 防連點) ---
+    // --- 3. 雲端自動儲存 (Debounce & 離線重試佇列) ---
     function saveProgress() {
-        if (!currentUserId) return; // 未登入不儲存
+        if (!currentUserId) return; 
 
         const statusEl = document.getElementById('sync-status');
-        statusEl.innerText = "⏳ 儲存中...";
+        statusEl.innerText = "⏳ 暫存中 (將於 60 秒後同步)...";
         statusEl.style.color = "var(--warning)";
 
         const simplifiedState = userState.map(s => s ? { 
@@ -733,32 +743,75 @@
             progressData: JSON.stringify(dataToSave)
         };
 
-        // 如果之前有正在等待送出的儲存，就取消掉 (避免快速切題發送太多請求)
+        // 優先寫入瀏覽器 LocalStorage，建立「離線備份與佇列」
+        localStorage.setItem('ecih_v3_offline_backup', JSON.stringify(payload));
+        localStorage.setItem('ecih_v3_unsynced', 'true'); // 標記有未同步的資料
+
         if (saveTimeout) clearTimeout(saveTimeout);
 
-        // 延遲 0.5 秒後執行雲端儲存
+        // [修改] 將延遲改為 60000 毫秒 (60 秒)
         saveTimeout = setTimeout(() => {
-            fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if(result.status === "success") {
-                    statusEl.innerText = "☁️ 已自動儲存";
-                    statusEl.style.color = "#7f8c8d";
-                } else {
-                    statusEl.innerText = "⚠️ 儲存失敗";
-                    statusEl.style.color = "var(--danger)";
-                }
-            })
-            .catch(err => {
-                console.error("儲存失敗", err);
-                statusEl.innerText = "⚠️ 網路斷線";
-                statusEl.style.color = "var(--danger)";
-            });
-        }, 500);
+            triggerCloudSync();
+        }, 60000);
     }
+
+    // [新增] 執行真正的雲端同步動作
+    function triggerCloudSync() {
+        const unsynced = localStorage.getItem('ecih_v3_unsynced');
+        if (unsynced !== 'true') return; // 如果沒有未同步資料，就不執行
+
+        const payloadStr = localStorage.getItem('ecih_v3_offline_backup');
+        if (!payloadStr) return;
+
+        const statusEl = document.getElementById('sync-status');
+        statusEl.innerText = "☁️ 雲端同步中...";
+        statusEl.style.color = "var(--warning)";
+
+        fetch(API_URL, {
+            method: "POST",
+            body: payloadStr
+        })
+        .then(res => res.json())
+        .then(result => {
+            if(result.status === "success") {
+                localStorage.removeItem('ecih_v3_unsynced'); // 成功後清除未同步標記
+                statusEl.innerText = "☁️ 已自動儲存";
+                statusEl.style.color = "#7f8c8d";
+            } else {
+                statusEl.innerText = "⚠️ 儲存失敗 (離線暫存中)";
+                statusEl.style.color = "var(--danger)";
+            }
+        })
+        .catch(err => {
+            console.error("儲存失敗", err);
+            statusEl.innerText = "⚠️ 網路斷線 (將於連線後重試)";
+            statusEl.style.color = "var(--danger)";
+        });
+    }
+
+    // [新增] 監聽器：關閉網頁或重新整理前，強制觸發一次儲存
+    window.addEventListener('beforeunload', (event) => {
+        if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
+            const payloadStr = localStorage.getItem('ecih_v3_offline_backup');
+            if (payloadStr) {
+                // 使用 keepalive 確保在網頁關閉時仍能在背景發送請求
+                fetch(API_URL, {
+                    method: "POST",
+                    body: payloadStr,
+                    keepalive: true
+                }).catch(() => {}); // 關閉時的錯誤直接忽略
+            }
+        }
+    });
+
+    // [新增] 監聽器：偵測網路恢復連線時，自動觸發重試
+    window.addEventListener('online', () => {
+        if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
+            const statusEl = document.getElementById('sync-status');
+            statusEl.innerText = "🌐 網路恢復，準備同步...";
+            triggerCloudSync();
+        }
+    });
 
     function clearProgress() {
         if(confirm("確定要清空所有作答進度嗎？\n(已標記的重點題目 🚩 將會被保留)")) {
@@ -775,10 +828,10 @@
             });
             
             currentIdx = 0;
-            renderQuestion(); // 此函式內已包含 saveProgress() 自動推上雲端
+            renderQuestion(); 
             
             const toast = document.createElement('div');
-            toast.innerHTML = `🗑️ 進度已清空 (標記已保留)，並同步至雲端！`;
+            toast.innerHTML = `🗑️ 進度已清空 (標記已保留)，並準備同步！`;
             toast.style.cssText = `position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 15px 20px; border-radius: 8px; font-weight: bold; z-index: 1000; animation: fadeIn 0.3s;`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -792,16 +845,14 @@
         renderQuestion();
     }
 
-    // --- 標記 Flag 功能 ---
     function toggleFlag() {
         if (!userState[currentIdx]) {
             userState[currentIdx] = { answered: false, selectedIdx: null, isCorrect: false, isFlagged: false };
         }
         userState[currentIdx].isFlagged = !userState[currentIdx].isFlagged;
-        renderQuestion(); // 內部會觸發 saveProgress()
+        renderQuestion(); 
     }
 
-    // --- 尋找上一個 / 下一個標記功能 ---
     function jumpToPrevFlag() {
         for (let i = currentIdx - 1; i >= 0; i--) {
             if (userState[i] && userState[i].isFlagged) {
@@ -824,7 +875,6 @@
         alert("⚠️ 後面已經沒有被標記 (🚩) 的題目了！");
     }
 
-    // --- 匯出標記文字檔功能 ---
     function exportFlagged() {
         let flaggedNumbers = [];
 
@@ -840,10 +890,8 @@
             return;
         }
 
-        // 只要題號，不包含其他文字 (以逗號分隔)
         let exportText = flaggedNumbers.join(", ");
 
-        // 建立 Blob 並下載
         const blob = new Blob([exportText], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -865,21 +913,26 @@
         URL.revokeObjectURL(url);
     }
 
-    // --- 登出邏輯 (清除方案B記憶) ---
     function logout() {
         if(confirm("確定要登出嗎？\n(這會清除瀏覽器記住的 ID，需要重新輸入)")) {
-            localStorage.removeItem('ecih_v3_userid'); // 忘記此 ID
+            // [新增] 登出前強制推一次尚未同步的資料，避免換帳號導致進度遺失
+            if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
+                triggerCloudSync();
+            }
+
+            localStorage.removeItem('ecih_v3_userid'); 
+            localStorage.removeItem('ecih_v3_offline_backup');
+            localStorage.removeItem('ecih_v3_unsynced');
+            
             currentUserId = "";
             userState = new Array(rawData.length).fill(null);
             
-            // 隱藏測驗畫面，重新顯示登入視窗
             document.getElementById('quiz-screen').style.display = 'none';
             document.getElementById('login-modal').style.display = 'flex';
             document.getElementById('userid-input').value = "";
         }
     }
 
-    // --- 檢視總覽 Modal 功能 ---
     function openReview() {
         const grid = document.getElementById('review-grid');
         let html = '';
@@ -932,7 +985,6 @@
         closeReview();
     }
 
-    // --- Google 翻譯邏輯 (加入 Toggle) ---
     async function translateQuestion() {
         const currentQ = rawData[currentIdx];
         const translateBtn = document.getElementById('translate-btn');
@@ -1021,7 +1073,6 @@
 
         let translationHtml = `<div id="translated-text" class="translation-box" style="display:${transDisplayStyle};"><b>📝 中文翻譯：</b><br><br>${currentQ.translatedData || ''}</div>`;
 
-        // 標記按鈕 (Flag)
         let isFlagged = state && state.isFlagged;
         let flagClass = isFlagged ? "flag-btn active" : "flag-btn";
 
@@ -1052,8 +1103,7 @@
         container.innerHTML = html;
         updateStats();
         
-        // 渲染完題目自動觸發非同步存檔
-        saveProgress();
+        saveProgress(); 
     }
 
     function checkAnswer(selectedIdx) {
@@ -1062,7 +1112,6 @@
         const currentQ = rawData[currentIdx];
         const isCorrect = (selectedIdx === currentQ.ans);
 
-        // 保留原有的 flag 狀態
         let existingFlag = userState[currentIdx] ? userState[currentIdx].isFlagged : false;
 
         userState[currentIdx] = { 
@@ -1071,16 +1120,14 @@
             isCorrect: isCorrect,
             isFlagged: existingFlag
         };
-        renderQuestion(); // render 裡面包含 saveProgress()
+        renderQuestion(); 
     }
 
     function clearCurrentQuestion() {
-        // 若尚未作答，則不需要清除
         if (!userState[currentIdx] || !userState[currentIdx].answered) {
             return;
         }
 
-        // 保留原本的 flag 狀態，僅清除作答狀態
         let existingFlag = userState[currentIdx].isFlagged;
 
         userState[currentIdx] = {
@@ -1089,7 +1136,7 @@
             isCorrect: false,
             isFlagged: existingFlag
         };
-        renderQuestion(); // 會自動重新渲染畫面並觸發 saveProgress() 同步至雲端
+        renderQuestion(); 
     }
 
     function jumpQuestion() {
@@ -1121,34 +1168,30 @@
         document.getElementById('progress-text').textContent = `${answeredCount} / ${rawData.length}`;
         document.getElementById('score-text').textContent = correctCount;
         
-        // 計算正確率
         const accuracy = answeredCount === 0 ? 0 : Math.round((correctCount / answeredCount) * 100);
         const accuracyEl = document.getElementById('accuracy-text');
         if (accuracyEl) {
             accuracyEl.textContent = `${accuracy}%`;
             
-            // 依據正確率變更顏色 (低於70%為紅色)
             if (answeredCount > 0) {
                 if (accuracy < 70) {
-                    accuracyEl.style.color = 'var(--danger)'; // 紅色
+                    accuracyEl.style.color = 'var(--danger)'; 
                 } else {
-                    accuracyEl.style.color = 'var(--success)'; // 綠色
+                    accuracyEl.style.color = 'var(--success)'; 
                 }
             } else {
-                accuracyEl.style.color = 'var(--warning)'; // 預設黃色
+                accuracyEl.style.color = 'var(--warning)'; 
             }
         }
     }
 
-    // --- 鍵盤控制支援 ---
     document.addEventListener('keydown', (e) => {
-        // 如果開啟了 Review Modal，不要觸發捷徑作答，但可以按 ESC 關閉
         if (document.getElementById('review-modal').style.display === 'flex') {
             if (e.key === 'Escape') closeReview();
             return;
         }
         if (document.getElementById('login-modal').style.display === 'flex') {
-            return; // 登入視窗不觸發題庫按鍵
+            return; 
         }
 
         if (document.getElementById('quiz-screen').style.display === 'block' && e.target.tagName !== 'INPUT') {
