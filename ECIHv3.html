@@ -33,7 +33,7 @@
 
         .container {
             width: 100%;
-            max-width: 850px;
+            max-width: 980px; /* 放寬容器，確保兩側內容有足夠空間平行顯示 */
             background: white;
             padding: 30px;
             border-radius: 12px;
@@ -48,8 +48,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap; /* 強制左右兩個區塊不換行，保持平行 */
             gap: 15px;
+        }
+
+        header > div:first-child {
+            flex: 1; /* 讓左側標題區塊自適應剩餘空間 */
+            min-width: 0;
         }
 
         h2 { margin: 0; color: var(--primary); font-size: 1.6em; }
@@ -58,7 +63,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap; /* 確保按鈕與計分板保持在同一行 */
+            flex-shrink: 0; /* 防止按鈕區塊被過度擠壓 */
         }
 
         .btn-action {
@@ -76,7 +82,7 @@
         .btn-review { background: var(--info); }
         .btn-review:hover { background: #732d91; }
 
-        .stats-board { display: flex; gap: 10px; }
+        .stats-board { display: flex; gap: 10px; flex-wrap: nowrap; }
 
         .stat-box {
             background: var(--light);
@@ -315,6 +321,20 @@
             background: white; border-radius: 50%; width: 18px; height: 18px;
             line-height: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             text-align: center;
+        }
+
+        /* RWD 應對手機小螢幕 */
+        @media (max-width: 850px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .header-actions {
+                width: 100%;
+                flex-wrap: wrap; /* 手機畫面再允許換行 */
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
