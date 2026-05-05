@@ -1010,7 +1010,8 @@
             let textToTranslate = currentQ.plainQ + "\n\n";
             currentQ.options.forEach((opt, i) => { textToTranslate += `${String.fromCharCode(65 + i)}. ${opt}\n`; });
 
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+            // 將 tl=zh-TW 改為 tl=zh-Hant，強制 Google 引擎輸出繁體中文
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-Hant&dt=t&q=${encodeURIComponent(textToTranslate)}`;
             const response = await fetch(url);
             const data = await response.json();
             
