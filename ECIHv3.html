@@ -667,7 +667,7 @@
     }
 
     async function loadProgressFromCloud() {
-        // [新增] 離線重試機制：若有未同步的離線資料，優先載入並嘗試上傳
+        // [離線重試機制] 若有未同步的離線資料，優先載入並嘗試上傳
         const isUnsynced = localStorage.getItem('ecih_v3_unsynced') === 'true';
         if (isUnsynced) {
             const backupPayload = localStorage.getItem('ecih_v3_offline_backup');
@@ -684,7 +684,7 @@
                         document.getElementById('quiz-screen').style.display = 'block';
                         initQuiz();
                         
-                        // 嘗試推上雲端
+                        // 嘗試推上雲端 (立刻同步)
                         triggerCloudSync();
                         return;
                     }
@@ -749,13 +749,13 @@
 
         if (saveTimeout) clearTimeout(saveTimeout);
 
-        // [修改] 將延遲改為 60000 毫秒 (60 秒)
+        // 延遲 60 秒後執行雲端儲存
         saveTimeout = setTimeout(() => {
             triggerCloudSync();
         }, 60000);
     }
 
-    // [新增] 執行真正的雲端同步動作
+    // 執行真正的雲端同步動作
     function triggerCloudSync() {
         const unsynced = localStorage.getItem('ecih_v3_unsynced');
         if (unsynced !== 'true') return; // 如果沒有未同步資料，就不執行
@@ -789,7 +789,7 @@
         });
     }
 
-    // [新增] 監聽器：關閉網頁或重新整理前，強制觸發一次儲存
+    // 監聽器：關閉網頁或重新整理前，強制觸發一次儲存
     window.addEventListener('beforeunload', (event) => {
         if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
             const payloadStr = localStorage.getItem('ecih_v3_offline_backup');
@@ -804,7 +804,7 @@
         }
     });
 
-    // [新增] 監聽器：偵測網路恢復連線時，自動觸發重試
+    // 監聽器：偵測網路恢復連線時，自動觸發重試
     window.addEventListener('online', () => {
         if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
             const statusEl = document.getElementById('sync-status');
@@ -842,7 +842,8 @@
         const total = rawData.length;
         document.getElementById('total-q').textContent = total;
         document.getElementById('jump-input').max = total;
-        renderQuestion();
+        // 加入參數 false，確保初始載入或 F5 重整時，不會立刻觸發 60 秒存檔覆蓋了 UI
+        renderQuestion(false); 
     }
 
     function toggleFlag() {
@@ -915,7 +916,7 @@
 
     function logout() {
         if(confirm("確定要登出嗎？\n(這會清除瀏覽器記住的 ID，需要重新輸入)")) {
-            // [新增] 登出前強制推一次尚未同步的資料，避免換帳號導致進度遺失
+            // 登出前強制推一次尚未同步的資料，避免換帳號導致進度遺失
             if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
                 triggerCloudSync();
             }
@@ -1032,7 +1033,8 @@
         }
     }
 
-    function renderQuestion() {
+    // 加入 shouldSave 參數，預設為 true (代表作答/切題時正常存檔)
+    function renderQuestion(shouldSave = true) {
         const container = document.getElementById('quiz-container');
         const currentQ = rawData[currentIdx];
         const state = userState[currentIdx];
@@ -1103,7 +1105,10 @@
         container.innerHTML = html;
         updateStats();
         
-        saveProgress(); 
+        // 唯有 shouldSave 為 true 時 (真正操作答題、標記等)，才觸發 60 秒倒數
+        if (shouldSave) {
+            saveProgress(); 
+        }
     }
 
     function checkAnswer(selectedIdx) {
