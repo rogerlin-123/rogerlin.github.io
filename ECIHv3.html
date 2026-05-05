@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECIH v3 模擬題庫 (自動存檔進化版)</title>
+    <title>ECIH v3 模擬題庫 (雲端同步版)</title>
     <!-- 引入 JSZip 來解析 DOCX 壓縮檔 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -71,8 +71,6 @@
             font-size: 0.85em;
             transition: 0.2s;
         }
-        .btn-restart { background: var(--secondary); }
-        .btn-restart:hover { background: #2980b9; }
         .btn-clear { background: var(--danger); }
         .btn-clear:hover { background: #c0392b; }
         .btn-review { background: var(--info); }
@@ -152,37 +150,43 @@
             from { opacity: 0; transform: translateX(10px); }
             to { opacity: 1; transform: translateX(0); }
         }
-
-        .source-tag {
-            font-size: 0.85em; background: #e1e8ed; padding: 5px 10px;
-            border-radius: 20px; margin-bottom: 15px; display: inline-block;
-            color: #555; font-weight: 600; vertical-align: middle;
-        }
         
         .alert-tag {
             font-size: 0.85em; background: #fff3cd; padding: 5px 10px;
             border-radius: 20px; margin-bottom: 15px; display: inline-block;
-            color: #856404; font-weight: 600; margin-left: 10px; vertical-align: middle;
+            color: #856404; font-weight: 600; margin-top: 10px;
         }
 
-        /* Translate Button */
+        /* Question Action Buttons (Translate, Flag, Export, Nav) */
         .btn-translate {
-            background: var(--warning); color: #fff; border: none; padding: 5px 12px;
-            border-radius: 20px; cursor: pointer; font-size: 0.85em; font-weight: bold;
-            margin-left: 10px; margin-bottom: 15px; display: inline-block;
-            vertical-align: middle; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: var(--warning); color: #fff; border: none; padding: 4px 10px;
+            border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 0;
         }
-        .btn-translate:hover:not(:disabled) { background: #d68910; }
+        .btn-translate:hover:not(:disabled) { background: #d68910; transform: translateY(-1px); }
         .btn-translate:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* Flag Button */
         .flag-btn {
-            background: none; border: none; cursor: pointer; font-size: 1.3em;
-            margin-left: 10px; vertical-align: middle; transition: 0.2s;
+            background: none; border: none; cursor: pointer; font-size: 1.2em;
+            transition: 0.2s; padding: 0; margin: 0;
             opacity: 0.3; filter: grayscale(100%);
         }
         .flag-btn:hover { transform: scale(1.2); }
         .flag-btn.active { opacity: 1; filter: none; animation: pop 0.3s ease; }
+
+        .btn-export-small {
+            background: #27ae60; color: white; border: none; padding: 4px 10px;
+            border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 0;
+        }
+        .btn-export-small:hover { background: #219150; transform: translateY(-1px); }
+
+        .btn-nav-small {
+            background: var(--info); color: white; border: none; padding: 4px 10px;
+            border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 0;
+        }
+        .btn-nav-small:hover { background: #732d91; transform: translateY(-1px); }
 
         @keyframes pop {
             0% { transform: scale(1); }
@@ -251,7 +255,7 @@
             padding: 2px 6px; font-family: monospace; font-weight: bold; color: #2c3e50;
         }
 
-        /* Review Modal Styles */
+        /* Modal Styles (Review & Login) */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6); z-index: 2000;
@@ -275,8 +279,11 @@
         }
         .btn-close:hover { color: var(--danger); transform: scale(1.1); }
         .review-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;
-            overflow-y: auto; padding-right: 10px;
+            display: grid; 
+            grid-template-columns: repeat(10, 1fr); /* 強制設定為 10 列 */
+            gap: 10px;
+            overflow-y: auto; 
+            padding-right: 10px;
         }
         .review-item {
             padding: 10px 5px; text-align: center; border-radius: 6px; cursor: pointer; 
@@ -302,19 +309,36 @@
 <!-- 初始畫面：自動載入畫面 -->
 <div class="container" id="loading-screen">
     <div class="loader-spinner" id="spinner"></div>
-    <h2 style="color: var(--primary);" id="loading-title">⚙️ 題庫自動載入中...</h2>
+    <h2 style="color: var(--primary);" id="loading-title">⚙️ 題庫資料擷取中...</h2>
     <p style="color: #7f8c8d; margin-top: 15px; font-size: 1.1em;" id="loading-subtitle">
         正在讀取並解析同目錄下的 <b>ECIHv3.docx</b><br>請稍候片刻...
     </p>
     <div id="error-msg" style="color: var(--danger); margin-top: 20px; font-weight: bold;"></div>
 </div>
 
-<!-- 測驗畫面：解析完成後顯示 -->
+<!-- 登入視窗 Modal -->
+<div class="modal-overlay" id="login-modal" style="display: none; z-index: 3000;">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+        <h3 style="color: var(--primary); margin-top: 0; font-size: 1.5em;">👋 歡迎來到模擬題庫</h3>
+        <p style="color: #7f8c8d; margin-bottom: 25px; line-height: 1.6;">
+            請輸入您的 <strong>專屬 ID</strong> (如學號或自訂名稱)<br>
+            系統將透過雲端同步您的作答進度！
+        </p>
+        <input type="text" id="userid-input" placeholder="請輸入 ID..." style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1.1em; margin-bottom: 20px; text-align: center;" onkeydown="if(event.key === 'Enter') startWithUserId()">
+        <button onclick="startWithUserId()" style="width: 100%; padding: 14px; background: var(--secondary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='var(--secondary)'">進入測驗 🚀</button>
+    </div>
+</div>
+
+<!-- 測驗畫面：解析與登入完成後顯示 -->
 <div class="container" id="quiz-screen" style="display: none;">
     <header>
         <div>
             <h2>ECIH v3 模擬考練習</h2>
-            <p style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 0.9em;">自動存檔功能已啟用 💾</p>
+            <p style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 0.9em; font-weight: bold;">
+                👤 目前登入: <span id="display-userid" style="color: var(--primary);">---</span> 
+                &nbsp;|&nbsp; 
+                <span id="sync-status" style="color: #7f8c8d;">☁️ 等待同步...</span>
+            </p>
         </div>
         <div class="header-actions">
             <button class="btn-action btn-review" onclick="openReview()">📊 檢視紀錄</button>
@@ -361,14 +385,16 @@
 </div>
 
 <script>
+    // ✅ 您提供的 Google Apps Script API 網址
+    const API_URL = "https://script.google.com/macros/s/AKfycby4bPmq9mBiclIJccfSft4uqvNGGOfOq8QkNUDb_p8W4VMSNoR0n8TBNpD46z33hBt9/exec";
+    
     let rawData = [];
     let currentIdx = 0; 
     let userState = [];
+    let currentUserId = "";
+    let saveTimeout = null; // 用於延遲儲存的計時器 (Debounce)
 
-    // LocalStorage Key
-    const STORAGE_KEY = 'ecih_v3_saved_progress';
-
-    // --- 自動載入同目錄下的 DOCX 檔案 ---
+    // --- 1. 自動載入同目錄下的 DOCX 檔案 ---
     window.onload = function() {
         const targetFilename = './ECIHv3.docx';
         
@@ -391,10 +417,9 @@
         }
     };
 
-    // 顯示備用上傳機制
     function showFallbackUpload(filename, errMsg) {
         document.getElementById('spinner').style.display = 'none';
-        document.getElementById('loading-title').innerText = "⚠️ 自動載入失敗";
+        document.getElementById('loading-title').innerText = "⚠️ 題庫載入失敗";
         document.getElementById('loading-subtitle').style.display = 'none';
         
         document.getElementById('error-msg').innerHTML = 
@@ -537,15 +562,14 @@
     function processParsedLines(parsedLines) {
         let questions = [];
         let currentQ = null;
-        let blockName = "題庫";
 
         parsedLines.forEach(lineObj => {
             let text = lineObj.plainText;
             let htmlText = lineObj.htmlText;
             let isHighlighted = lineObj.isHighlighted;
 
+            // 忽略原有的題組標籤
             if (text.match(/Exam.*Part/i) || text.includes("Question 100") || text.includes("Question 205")) {
-                blockName = text.substring(0, 30);
                 return;
             }
 
@@ -553,7 +577,7 @@
                 if (currentQ && currentQ.q) questions.push(currentQ);
                 currentQ = { 
                     q: "", plainQ: "", options: [], ans: 0, hasHighlight: false, 
-                    src: blockName + " - " + text.replace('.', '').trim(), translatedData: null, translationVisible: false 
+                    translatedData: null, translationVisible: false 
                 };
                 return;
             }
@@ -585,16 +609,66 @@
         rawData = questions;
         userState = new Array(rawData.length).fill(null);
         
-        loadProgress(); // 嘗試載入本地存檔
-
+        // 檔案載入完畢，隱藏載入畫面，跳出登入視窗
         document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('quiz-screen').style.display = 'block';
-        initQuiz();
+        document.getElementById('login-modal').style.display = 'flex';
     }
 
-    // --- 存檔與讀檔邏輯 ---
+    // --- 2. 登入與雲端讀取邏輯 ---
+    function startWithUserId() {
+        const uid = document.getElementById('userid-input').value.trim();
+        if(!uid) {
+            alert("⚠️ 請輸入您的 ID 才能開始測驗！");
+            return;
+        }
+        currentUserId = uid;
+        document.getElementById('display-userid').textContent = currentUserId;
+        document.getElementById('login-modal').style.display = 'none';
+
+        // 重新顯示載入畫面，變更文字為雲端讀取
+        document.getElementById('loading-screen').style.display = 'block';
+        document.getElementById('spinner').style.display = 'block';
+        document.getElementById('loading-title').innerText = "☁️ 正在連線雲端資料庫...";
+        document.getElementById('loading-subtitle').innerHTML = "正在同步您的作答紀錄，請稍候...<br><span style='font-size: 0.85em; color: #999;'>(初次連線可能需要 1~2 秒)</span>";
+
+        loadProgressFromCloud();
+    }
+
+    async function loadProgressFromCloud() {
+        try {
+            const response = await fetch(`${API_URL}?userId=${encodeURIComponent(currentUserId)}`);
+            const result = await response.json();
+
+            if (result.status === "success" && result.data) {
+                const data = JSON.parse(result.data);
+                if (data.state && data.state.length === rawData.length) {
+                    userState = data.state;
+                    currentIdx = data.currentIdx || 0;
+                    document.getElementById('sync-status').innerText = "☁️ 已從雲端載入";
+                }
+            } else {
+                document.getElementById('sync-status').innerText = "☁️ 雲端已就緒 (新進度)";
+            }
+        } catch (error) {
+            console.error("雲端讀取失敗:", error);
+            alert("⚠️ 無法連線至雲端資料庫，本次將以「離線模式」開啟。");
+            document.getElementById('sync-status').innerText = "⚠️ 離線模式";
+            document.getElementById('sync-status').style.color = "var(--danger)";
+        } finally {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            initQuiz();
+        }
+    }
+
+    // --- 3. 雲端自動儲存 (Debounce 防連點) ---
     function saveProgress() {
-        // 儲存 isFlagged 標記狀態
+        if (!currentUserId) return; // 未登入不儲存
+
+        const statusEl = document.getElementById('sync-status');
+        statusEl.innerText = "⏳ 儲存中...";
+        statusEl.style.color = "var(--warning)";
+
         const simplifiedState = userState.map(s => s ? { 
             answered: s.answered, 
             selectedIdx: s.selectedIdx, 
@@ -602,30 +676,45 @@
             isFlagged: s.isFlagged || false
         } : null);
         
-        const data = {
+        const dataToSave = {
             currentIdx: currentIdx,
             state: simplifiedState
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
 
-    function loadProgress() {
-        const savedData = localStorage.getItem(STORAGE_KEY);
-        if (savedData) {
-            try {
-                const data = JSON.parse(savedData);
-                if (data.state && data.state.length === rawData.length) {
-                    userState = data.state;
-                    currentIdx = data.currentIdx || 0;
-                    console.log("已成功載入上次進度！");
+        const payload = {
+            userId: currentUserId,
+            progressData: JSON.stringify(dataToSave)
+        };
+
+        // 如果之前有正在等待送出的儲存，就取消掉 (避免快速切題發送太多請求)
+        if (saveTimeout) clearTimeout(saveTimeout);
+
+        // 延遲 0.5 秒後執行雲端儲存
+        saveTimeout = setTimeout(() => {
+            fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if(result.status === "success") {
+                    statusEl.innerText = "☁️ 已自動儲存";
+                    statusEl.style.color = "#7f8c8d";
+                } else {
+                    statusEl.innerText = "⚠️ 儲存失敗";
+                    statusEl.style.color = "var(--danger)";
                 }
-            } catch (e) { console.error("解析存檔失敗", e); }
-        }
+            })
+            .catch(err => {
+                console.error("儲存失敗", err);
+                statusEl.innerText = "⚠️ 網路斷線";
+                statusEl.style.color = "var(--danger)";
+            });
+        }, 500);
     }
 
     function clearProgress() {
-        if(confirm("確定要清空所有作答進度與紀錄嗎？(已標記的重點題目將會保留)")) {
-            // 保留 isFlagged，清空其他作答狀態
+        if(confirm("確定要清空所有作答進度嗎？\n(已標記的重點題目 🚩 將會被保留)")) {
             userState = userState.map(state => {
                 if (state) {
                     return {
@@ -638,12 +727,11 @@
                 return null;
             });
             
-            saveProgress();
             currentIdx = 0;
-            renderQuestion();
+            renderQuestion(); // 此函式內已包含 saveProgress() 自動推上雲端
             
             const toast = document.createElement('div');
-            toast.innerHTML = `🗑️ 進度已清空 (標記已保留)，重新開始！`;
+            toast.innerHTML = `🗑️ 進度已清空 (標記已保留)，並同步至雲端！`;
             toast.style.cssText = `position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 15px 20px; border-radius: 8px; font-weight: bold; z-index: 1000; animation: fadeIn 0.3s;`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -663,8 +751,71 @@
             userState[currentIdx] = { answered: false, selectedIdx: null, isCorrect: false, isFlagged: false };
         }
         userState[currentIdx].isFlagged = !userState[currentIdx].isFlagged;
-        saveProgress();
-        renderQuestion();
+        renderQuestion(); // 內部會觸發 saveProgress()
+    }
+
+    // --- 尋找上一個 / 下一個標記功能 ---
+    function jumpToPrevFlag() {
+        for (let i = currentIdx - 1; i >= 0; i--) {
+            if (userState[i] && userState[i].isFlagged) {
+                currentIdx = i;
+                renderQuestion();
+                return;
+            }
+        }
+        alert("⚠️ 前面已經沒有被標記 (🚩) 的題目了！");
+    }
+
+    function jumpToNextFlag() {
+        for (let i = currentIdx + 1; i < rawData.length; i++) {
+            if (userState[i] && userState[i].isFlagged) {
+                currentIdx = i;
+                renderQuestion();
+                return;
+            }
+        }
+        alert("⚠️ 後面已經沒有被標記 (🚩) 的題目了！");
+    }
+
+    // --- 匯出標記文字檔功能 ---
+    function exportFlagged() {
+        let flaggedNumbers = [];
+
+        for (let i = 0; i < rawData.length; i++) {
+            const state = userState[i];
+            if (state && state.isFlagged) {
+                flaggedNumbers.push(i + 1);
+            }
+        }
+
+        if (flaggedNumbers.length === 0) {
+            alert("⚠️ 目前沒有任何被標記 (🚩) 的題目！\n請先在題目旁點擊 🚩 進行標記後再匯出。");
+            return;
+        }
+
+        // 只要題號，不包含其他文字 (以逗號分隔)
+        let exportText = flaggedNumbers.join(", ");
+
+        // 建立 Blob 並下載
+        const blob = new Blob([exportText], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        
+        a.download = `ECIHv3_標記重點題號_${yyyy}${mm}${dd}_${hh}${min}${ss}.txt`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     // --- 檢視總覽 Modal 功能 ---
@@ -693,7 +844,6 @@
                 }
             }
             
-            // 標示目前所在的題目
             if (i === currentIdx) {
                 statusClass += ' current';
             }
@@ -816,14 +966,16 @@
 
         let html = `
             <div class="question-card">
-                <div class="source-tag">📂 來源：${currentQ.src}</div>
-                <button id="translate-btn" class="btn-translate" onclick="translateQuestion()">${transBtnText}</button>
                 ${alertTag}
                 
                 <div class="question-text">
-                    <span style="color:var(--secondary); display:flex; align-items:center;">
+                    <span style="color:var(--secondary); display:flex; align-items:center; flex-wrap:wrap; gap: 8px;">
                         第 ${currentIdx + 1} 題：
-                        <button class="${flagClass}" onclick="toggleFlag()" title="標記此題 (方便之後複習)">🚩</button>
+                        <button id="translate-btn" class="btn-translate" onclick="translateQuestion()" style="margin: 0;">${transBtnText}</button>
+                        <button class="${flagClass}" onclick="toggleFlag()" title="標記此題 (方便之後複習)" style="margin: 0;">🚩</button>
+                        <button class="btn-export-small" onclick="exportFlagged()" title="匯出所有已標記的題目" style="display: none; margin: 0;">📥 匯出標記</button>
+                        <button class="btn-nav-small" onclick="jumpToPrevFlag()" title="跳到上一個有標記 🚩 的題目" style="margin: 0;">◀ 尋找標記</button>
+                        <button class="btn-nav-small" onclick="jumpToNextFlag()" title="跳到下一個有標記 🚩 的題目" style="margin: 0;">尋找標記 ▶</button>
                     </span><br>
                     ${currentQ.q}
                     ${translationHtml}
@@ -837,7 +989,9 @@
         
         container.innerHTML = html;
         updateStats();
-        saveProgress(); // 切換題目時自動存檔
+        
+        // 渲染完題目自動觸發非同步存檔
+        saveProgress();
     }
 
     function checkAnswer(selectedIdx) {
@@ -912,6 +1066,9 @@
         if (document.getElementById('review-modal').style.display === 'flex') {
             if (e.key === 'Escape') closeReview();
             return;
+        }
+        if (document.getElementById('login-modal').style.display === 'flex') {
+            return; // 登入視窗不觸發題庫按鍵
         }
 
         if (document.getElementById('quiz-screen').style.display === 'block' && e.target.tagName !== 'INPUT') {
