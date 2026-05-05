@@ -175,6 +175,21 @@
         .btn-translate:hover:not(:disabled) { background: #d68910; }
         .btn-translate:disabled { opacity: 0.6; cursor: not-allowed; }
 
+        /* Flag Button */
+        .flag-btn {
+            background: none; border: none; cursor: pointer; font-size: 1.3em;
+            margin-left: 10px; vertical-align: middle; transition: 0.2s;
+            opacity: 0.3; filter: grayscale(100%);
+        }
+        .flag-btn:hover { transform: scale(1.2); }
+        .flag-btn.active { opacity: 1; filter: none; animation: pop 0.3s ease; }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
         .translation-box {
             margin-top: 15px; padding: 15px; background: #fef9e7; border-left: 5px solid var(--warning);
             border-radius: 6px; color: #444; font-size: 0.95em; line-height: 1.6;
@@ -260,18 +275,26 @@
         }
         .btn-close:hover { color: var(--danger); transform: scale(1.1); }
         .review-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;
             overflow-y: auto; padding-right: 10px;
         }
         .review-item {
-            padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; 
+            padding: 10px 5px; text-align: center; border-radius: 6px; cursor: pointer; 
             font-weight: bold; border: 1px solid #ccc; background: #f9f9f9; color: #999;
             transition: 0.2s; display: flex; flex-direction: column; justify-content: center;
+            position: relative;
         }
         .review-item:hover { filter: brightness(0.95); transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .review-item.correct { background: var(--success); color: white; border-color: var(--success); }
         .review-item.wrong { background: var(--danger); color: white; border-color: var(--danger); }
         .review-item.current { box-shadow: 0 0 0 3px var(--secondary); border-color: var(--secondary); }
+        
+        .flag-indicator {
+            position: absolute; top: -6px; right: -6px; font-size: 1em;
+            background: white; border-radius: 50%; width: 18px; height: 18px;
+            line-height: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -571,7 +594,14 @@
 
     // --- 存檔與讀檔邏輯 ---
     function saveProgress() {
-        const simplifiedState = userState.map(s => s ? { answered: s.answered, selectedIdx: s.selectedIdx, isCorrect: s.isCorrect } : null);
+        // 儲存 isFlagged 標記狀態
+        const simplifiedState = userState.map(s => s ? { 
+            answered: s.answered, 
+            selectedIdx: s.selectedIdx, 
+            isCorrect: s.isCorrect,
+            isFlagged: s.isFlagged || false
+        } : null);
+        
         const data = {
             currentIdx: currentIdx,
             state: simplifiedState
@@ -594,13 +624,26 @@
     }
 
     function clearProgress() {
-        if(confirm("確定要清空所有作答進度與紀錄嗎？(此動作無法復原)")) {
-            localStorage.removeItem(STORAGE_KEY);
-            userState = new Array(rawData.length).fill(null);
+        if(confirm("確定要清空所有作答進度與紀錄嗎？(已標記的重點題目將會保留)")) {
+            // 保留 isFlagged，清空其他作答狀態
+            userState = userState.map(state => {
+                if (state) {
+                    return {
+                        answered: false,
+                        selectedIdx: null,
+                        isCorrect: false,
+                        isFlagged: state.isFlagged
+                    };
+                }
+                return null;
+            });
+            
+            saveProgress();
             currentIdx = 0;
             renderQuestion();
+            
             const toast = document.createElement('div');
-            toast.innerHTML = `🗑️ 進度已清空，重新開始！`;
+            toast.innerHTML = `🗑️ 進度已清空 (標記已保留)，重新開始！`;
             toast.style.cssText = `position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 15px 20px; border-radius: 8px; font-weight: bold; z-index: 1000; animation: fadeIn 0.3s;`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -614,6 +657,16 @@
         renderQuestion();
     }
 
+    // --- 標記 Flag 功能 ---
+    function toggleFlag() {
+        if (!userState[currentIdx]) {
+            userState[currentIdx] = { answered: false, selectedIdx: null, isCorrect: false, isFlagged: false };
+        }
+        userState[currentIdx].isFlagged = !userState[currentIdx].isFlagged;
+        saveProgress();
+        renderQuestion();
+    }
+
     // --- 檢視總覽 Modal 功能 ---
     function openReview() {
         const grid = document.getElementById('review-grid');
@@ -623,14 +676,20 @@
             const state = userState[i];
             let statusClass = 'unanswered';
             let icon = '⬜';
+            let flagIndicator = '';
             
-            if (state && state.answered) {
-                if (state.isCorrect) {
-                    statusClass = 'correct';
-                    icon = '✅';
-                } else {
-                    statusClass = 'wrong';
-                    icon = '❌';
+            if (state) {
+                if (state.answered) {
+                    if (state.isCorrect) {
+                        statusClass = 'correct';
+                        icon = '✅';
+                    } else {
+                        statusClass = 'wrong';
+                        icon = '❌';
+                    }
+                }
+                if (state.isFlagged) {
+                    flagIndicator = `<div class="flag-indicator">🚩</div>`;
                 }
             }
             
@@ -641,6 +700,7 @@
 
             html += `
                 <div class="review-item ${statusClass}" onclick="goToQuestion(${i})">
+                    ${flagIndicator}
                     <div style="font-size:0.85em; margin-bottom: 5px;">Q${i+1}</div>
                     <div style="font-size:1.1em;">${icon}</div>
                 </div>
@@ -750,6 +810,10 @@
 
         let translationHtml = `<div id="translated-text" class="translation-box" style="display:${transDisplayStyle};"><b>📝 中文翻譯：</b><br><br>${currentQ.translatedData || ''}</div>`;
 
+        // 標記按鈕 (Flag)
+        let isFlagged = state && state.isFlagged;
+        let flagClass = isFlagged ? "flag-btn active" : "flag-btn";
+
         let html = `
             <div class="question-card">
                 <div class="source-tag">📂 來源：${currentQ.src}</div>
@@ -757,7 +821,10 @@
                 ${alertTag}
                 
                 <div class="question-text">
-                    <span style="color:var(--secondary);">第 ${currentIdx + 1} 題：</span><br><br>
+                    <span style="color:var(--secondary); display:flex; align-items:center;">
+                        第 ${currentIdx + 1} 題：
+                        <button class="${flagClass}" onclick="toggleFlag()" title="標記此題 (方便之後複習)">🚩</button>
+                    </span><br>
                     ${currentQ.q}
                     ${translationHtml}
                 </div>
@@ -779,7 +846,15 @@
         const currentQ = rawData[currentIdx];
         const isCorrect = (selectedIdx === currentQ.ans);
 
-        userState[currentIdx] = { answered: true, selectedIdx: selectedIdx, isCorrect: isCorrect };
+        // 保留原有的 flag 狀態
+        let existingFlag = userState[currentIdx] ? userState[currentIdx].isFlagged : false;
+
+        userState[currentIdx] = { 
+            answered: true, 
+            selectedIdx: selectedIdx, 
+            isCorrect: isCorrect,
+            isFlagged: existingFlag
+        };
         renderQuestion(); // render 裡面包含 saveProgress()
     }
 
@@ -815,17 +890,19 @@
         // 計算正確率
         const accuracy = answeredCount === 0 ? 0 : Math.round((correctCount / answeredCount) * 100);
         const accuracyEl = document.getElementById('accuracy-text');
-        accuracyEl.textContent = `${accuracy}%`;
-        
-        // 依據正確率變更顏色 (低於70%為紅色)
-        if (answeredCount > 0) {
-            if (accuracy < 70) {
-                accuracyEl.style.color = 'var(--danger)'; // 紅色
+        if (accuracyEl) {
+            accuracyEl.textContent = `${accuracy}%`;
+            
+            // 依據正確率變更顏色 (低於70%為紅色)
+            if (answeredCount > 0) {
+                if (accuracy < 70) {
+                    accuracyEl.style.color = 'var(--danger)'; // 紅色
+                } else {
+                    accuracyEl.style.color = 'var(--success)'; // 綠色
+                }
             } else {
-                accuracyEl.style.color = 'var(--success)'; // 綠色
+                accuracyEl.style.color = 'var(--warning)'; // 預設黃色
             }
-        } else {
-            accuracyEl.style.color = 'var(--warning)'; // 預設黃色
         }
     }
 
