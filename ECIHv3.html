@@ -188,6 +188,13 @@
         }
         .btn-nav-small:hover { background: #732d91; transform: translateY(-1px); }
 
+        .btn-clear-small {
+            background: var(--danger); color: white; border: none; padding: 4px 10px;
+            border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold;
+            transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 0;
+        }
+        .btn-clear-small:hover { background: #c0392b; transform: translateY(-1px); }
+
         @keyframes pop {
             0% { transform: scale(1); }
             50% { transform: scale(1.3); }
@@ -972,6 +979,7 @@
                     <span style="color:var(--secondary); display:flex; align-items:center; flex-wrap:wrap; gap: 8px;">
                         第 ${currentIdx + 1} 題：
                         <button id="translate-btn" class="btn-translate" onclick="translateQuestion()" style="margin: 0;">${transBtnText}</button>
+                        <button class="btn-clear-small" onclick="clearCurrentQuestion()" title="清除本題的作答紀錄" style="margin: 0;">🗑️ 清除本題</button>
                         <button class="${flagClass}" onclick="toggleFlag()" title="標記此題 (方便之後複習)" style="margin: 0;">🚩</button>
                         <button class="btn-export-small" onclick="exportFlagged()" title="匯出所有已標記的題目" style="display: none; margin: 0;">📥 匯出標記</button>
                         <button class="btn-nav-small" onclick="jumpToPrevFlag()" title="跳到上一個有標記 🚩 的題目" style="margin: 0;">◀ 尋找標記</button>
@@ -1010,6 +1018,24 @@
             isFlagged: existingFlag
         };
         renderQuestion(); // render 裡面包含 saveProgress()
+    }
+
+    function clearCurrentQuestion() {
+        // 若尚未作答，則不需要清除
+        if (!userState[currentIdx] || !userState[currentIdx].answered) {
+            return;
+        }
+
+        // 保留原本的 flag 狀態，僅清除作答狀態
+        let existingFlag = userState[currentIdx].isFlagged;
+
+        userState[currentIdx] = {
+            answered: false,
+            selectedIdx: null,
+            isCorrect: false,
+            isFlagged: existingFlag
+        };
+        renderQuestion(); // 會自動重新渲染畫面並觸發 saveProgress() 同步至雲端
     }
 
     function jumpQuestion() {
