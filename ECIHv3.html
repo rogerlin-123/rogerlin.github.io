@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ECIH v3 模擬題庫 (雲端同步版)</title>
-    <!-- 引入 JSZip 來解析 DOCX 壓縮檔 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
@@ -339,7 +338,6 @@
 </head>
 <body>
 
-<!-- 初始畫面 -->
 <div class="container" id="loading-screen">
     <div class="loader-spinner" id="spinner"></div>
     <h2 style="color: var(--primary);" id="loading-title">⚙️ 題庫資料擷取中...</h2>
@@ -349,7 +347,6 @@
     <div id="error-msg" style="color: var(--danger); margin-top: 20px; font-weight: bold;"></div>
 </div>
 
-<!-- 登入視窗 -->
 <div class="modal-overlay" id="login-modal" style="display: none; z-index: 3000;">
     <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
         <h3 style="color: var(--primary); margin-top: 0; font-size: 1.5em;">👋 歡迎來到模擬題庫</h3>
@@ -362,7 +359,6 @@
     </div>
 </div>
 
-<!-- 測驗畫面 -->
 <div class="container" id="quiz-screen" style="display: none;">
     <header>
         <div>
@@ -393,8 +389,7 @@
     </div>
 
     <div id="quiz-container">
-        <!-- 題目將由 JavaScript 動態生成 -->
-    </div>
+        </div>
 
     <div class="controls">
         <button class="btn-prev" id="prev-btn" onclick="prevQuestion()">◄ 上一題</button>
@@ -405,7 +400,6 @@
     </div>
 </div>
 
-<!-- 檢視紀錄 Modal -->
 <div class="modal-overlay" id="review-modal" onclick="if(event.target===this) closeReview()">
     <div class="modal-content">
         <div class="modal-header">
@@ -413,8 +407,7 @@
             <button class="btn-close" onclick="closeReview()">&times;</button>
         </div>
         <div class="review-grid" id="review-grid">
-            <!-- 格子將由 JavaScript 動態生成 -->
-        </div>
+            </div>
     </div>
 </div>
 
@@ -764,8 +757,10 @@
         if (!payloadStr) return;
 
         const statusEl = document.getElementById('sync-status');
-        statusEl.innerText = "☁️ 雲端同步中...";
-        statusEl.style.color = "var(--warning)";
+        if (statusEl) {
+            statusEl.innerText = "☁️ 雲端同步中...";
+            statusEl.style.color = "var(--warning)";
+        }
 
         fetch(API_URL, {
             method: "POST",
@@ -775,40 +770,77 @@
         .then(result => {
             if(result.status === "success") {
                 localStorage.removeItem('ecih_v3_unsynced'); // 成功後清除未同步標記
-                statusEl.innerText = "☁️ 已自動儲存";
-                statusEl.style.color = "#7f8c8d";
+                if (statusEl) {
+                    statusEl.innerText = "☁️ 已自動儲存";
+                    statusEl.style.color = "#7f8c8d";
+                }
             } else {
-                statusEl.innerText = "⚠️ 儲存失敗 (離線暫存中)";
-                statusEl.style.color = "var(--danger)";
+                if (statusEl) {
+                    statusEl.innerText = "⚠️ 儲存失敗 (離線暫存中)";
+                    statusEl.style.color = "var(--danger)";
+                }
             }
         })
         .catch(err => {
             console.error("儲存失敗", err);
-            statusEl.innerText = "⚠️ 網路斷線 (將於連線後重試)";
-            statusEl.style.color = "var(--danger)";
+            if (statusEl) {
+                statusEl.innerText = "⚠️ 網路斷線 (將於連線後重試)";
+                statusEl.style.color = "var(--danger)";
+            }
         });
     }
 
-    // 監聽器：關閉網頁或重新整理前，強制觸發一次儲存
-    window.addEventListener('beforeunload', (event) => {
+    // --- 4. 關閉網頁與背景隱藏的強制儲存 (多重保險) ---
+    let isForceSyncing = false; // 記憶體鎖，防止多重事件重複觸發
+
+    function forceSyncData() {
+        if (isForceSyncing) return; // 若已經在送出中，則直接返回
+        
         if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
             const payloadStr = localStorage.getItem('ecih_v3_offline_backup');
             if (payloadStr) {
-                // 使用 keepalive 確保在網頁關閉時仍能在背景發送請求
+                isForceSyncing = true; // 上鎖
+                
                 fetch(API_URL, {
                     method: "POST",
                     body: payloadStr,
-                    keepalive: true
-                }).catch(() => {}); // 關閉時的錯誤直接忽略
+                    keepalive: true // 確保瀏覽器關閉時仍能在背景發送請求
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === "success") {
+                        localStorage.removeItem('ecih_v3_unsynced');
+                        const statusEl = document.getElementById('sync-status');
+                        if (statusEl) {
+                            statusEl.innerText = "☁️ 已自動儲存";
+                            statusEl.style.color = "#7f8c8d";
+                        }
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    isForceSyncing = false; // 解除鎖定
+                });
             }
+        }
+    }
+
+    // 綁定三個生命週期事件，完美覆蓋 PC, iOS Safari, Firefox 等各種死亡/隱藏瞬間
+    window.addEventListener('beforeunload', forceSyncData);
+    window.addEventListener('pagehide', forceSyncData);
+    window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            forceSyncData();
         }
     });
 
-    // 監聽器：偵測網路恢復連線時，自動觸發重試
+    // 偵測到重新恢復網路連線時，自動觸發重試
     window.addEventListener('online', () => {
         if (localStorage.getItem('ecih_v3_unsynced') === 'true') {
             const statusEl = document.getElementById('sync-status');
-            statusEl.innerText = "🌐 網路恢復，準備同步...";
+            if (statusEl) {
+                statusEl.innerText = "🌐 網路恢復，準備同步...";
+            }
             triggerCloudSync();
         }
     });
