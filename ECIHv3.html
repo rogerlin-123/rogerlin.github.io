@@ -774,23 +774,7 @@
                     statusEl.innerText = "☁️ 已自動儲存";
                     statusEl.style.color = "#7f8c8d";
                 }
-            } else {
-                if (statusEl) {
-                    statusEl.innerText = "⚠️ 儲存失敗 (離線暫存中)";
-                    statusEl.style.color = "var(--danger)";
-                }
-            }
-        })
-        .catch(err => {
-            console.error("儲存失敗", err);
-            if (statusEl) {
-                statusEl.innerText = "⚠️ 網路斷線 (將於連線後重試)";
-                statusEl.style.color = "var(--danger)";
-            }
-        });
-    }
-
-    // --- 4. 關閉網頁與背景隱藏的強制儲存 (多重保險) ---
+    // --- 4. 關閉網頁與背景隱藏的強制儲存 (多重保險 + Beacon API) ---
     let isForceSyncing = false; // 記憶體鎖，防止多重事件重複觸發
 
     function forceSyncData() {
@@ -801,26 +785,42 @@
             if (payloadStr) {
                 isForceSyncing = true; // 上鎖
                 
-                fetch(API_URL, {
-                    method: "POST",
-                    body: payloadStr,
-                    keepalive: true // 確保瀏覽器關閉時仍能在背景發送請求
-                })
-                .then(res => res.json())
-                .then(result => {
-                    if (result.status === "success") {
+                // 優先使用 Beacon API：專為「網頁關閉」設計，能突破 Firefox 與 iOS Safari 的攔截
+                if (navigator.sendBeacon) {
+                    // sendBeacon 會將資料交給 OS 網路層排隊，回傳 true 代表成功排入佇列
+                    const queued = navigator.sendBeacon(API_URL, payloadStr);
+                    if (queued) {
                         localStorage.removeItem('ecih_v3_unsynced');
                         const statusEl = document.getElementById('sync-status');
                         if (statusEl) {
-                            statusEl.innerText = "☁️ 已自動儲存";
+                            statusEl.innerText = "☁️ 已排入背景儲存";
                             statusEl.style.color = "#7f8c8d";
                         }
                     }
-                })
-                .catch(() => {})
-                .finally(() => {
                     isForceSyncing = false; // 解除鎖定
-                });
+                } else {
+                    // 若是很舊的瀏覽器不支援 Beacon API，則退回使用 fetch + keepalive
+                    fetch(API_URL, {
+                        method: "POST",
+                        body: payloadStr,
+                        keepalive: true // 確保瀏覽器關閉時仍能在背景發送請求
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.status === "success") {
+                            localStorage.removeItem('ecih_v3_unsynced');
+                            const statusEl = document.getElementById('sync-status');
+                            if (statusEl) {
+                                statusEl.innerText = "☁️ 已自動儲存";
+                                statusEl.style.color = "#7f8c8d";
+                            }
+                        }
+                    })
+                    .catch(() => {})
+                    .finally(() => {
+                        isForceSyncing = false; // 解除鎖定
+                    });
+                }
             }
         }
     }
