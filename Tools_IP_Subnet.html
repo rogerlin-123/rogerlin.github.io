@@ -6,7 +6,7 @@
     <title>IP / Subnet 計算機</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 40px; }
-        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 500px; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 600px; }
         h2 { color: #2c3e50; text-align: center; margin-bottom: 1.5rem; }
         .input-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
@@ -14,9 +14,11 @@
         button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         button:hover { background-color: #2980b9; }
         .result { margin-top: 20px; display: none; border-top: 2px solid #eee; padding-top: 20px; }
-        .result-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
-        .label { color: #7f8c8d; font-weight: 500; }
-        .value { color: #2c3e50; font-family: monospace; font-weight: bold; }
+        .result-item { display: flex; flex-direction: column; margin-bottom: 15px; border-bottom: 1px solid #f9f9f9; padding-bottom: 5px; }
+        .row-main { display: flex; justify-content: space-between; align-items: center; }
+        .label { color: #7f8c8d; font-weight: 500; font-size: 0.95rem; }
+        .value { color: #2c3e50; font-family: monospace; font-weight: bold; font-size: 1rem; }
+        .binary-value { color: #95a5a6; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; text-align: right; margin-top: 2px; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -30,11 +32,54 @@
     <button onclick="calculate()">計算轉換</button>
 
     <div class="result" id="resultArea">
-        <div class="result-item"><span class="label">子網路遮罩 (Mask):</span><span class="value" id="resMask"></span></div>
-        <div class="result-item"><span class="label">網路位址 (Network):</span><span class="value" id="resNet"></span></div>
-        <div class="result-item"><span class="label">廣播位址 (Broadcast):</span><span class="value" id="resBcast"></span></div>
-        <div class="result-item"><span class="label">可用主機範圍:</span><span class="value" id="resRange"></span></div>
-        <div class="result-item"><span class="label">總主機數:</span><span class="value" id="resCount"></span></div>
+        <!-- 子網路遮罩 -->
+        <div class="result-item">
+            <div class="row-main">
+                <span class="label">子網路遮罩 (Mask):</span>
+                <span class="value" id="resMask"></span>
+            </div>
+            <div class="binary-value" id="resMaskBin"></div>
+        </div>
+
+        <!-- 網路位址 (帶 CIDR) -->
+        <div class="result-item">
+            <div class="row-main">
+                <span class="label">網路位址 (Network):</span>
+                <span class="value" id="resNet"></span>
+            </div>
+        </div>
+
+        <!-- 網路代表號 -->
+        <div class="result-item">
+            <div class="row-main">
+                <span class="label">網路代表號 (Network ID):</span>
+                <span class="value" id="resID"></span>
+            </div>
+            <div class="binary-value" id="resIDBin"></div>
+        </div>
+
+        <!-- 廣播位址 -->
+        <div class="result-item">
+            <div class="row-main">
+                <span class="label">廣播位址 (Broadcast):</span>
+                <span class="value" id="resBcast"></span>
+            </div>
+            <div class="binary-value" id="resBcastBin"></div>
+        </div>
+
+        <!-- 可用範圍與主機數 -->
+        <div class="result-item">
+            <div class="row-main">
+                <span class="label">可用主機範圍:</span>
+                <span class="value" id="resRange"></span>
+            </div>
+        </div>
+        <div class="result-item">
+            <div class="row-main">
+                <span class="label">總主機數:</span>
+                <span class="value" id="resCount"></span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -45,6 +90,12 @@
 
     function longToIp(long) {
         return [ (long >>> 24) & 0xFF, (long >>> 16) & 0xFF, (long >>> 8) & 0xFF, long & 0xFF ].join('.');
+    }
+
+    // 將 32 位整數轉換為二進制字串，每 8 位補零並用點隔開
+    function longToBinary(long) {
+        const bin = (long >>> 0).toString(2).padStart(32, '0');
+        return bin.match(/.{8}/g).join('.');
     }
 
     function calculate() {
@@ -59,13 +110,13 @@
         const ipStr = parts[0];
         const prefix = parseInt(parts[1], 10);
 
-        if (prefix < 0 || prefix > 32) {
+        if (isNaN(prefix) || prefix < 0 || prefix > 32) {
             alert("遮罩長度必須在 0 到 32 之間");
             return;
         }
 
         const ipLong = ipToLong(ipStr);
-        const maskLong = (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        const maskLong = (prefix === 0) ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
         const netLong = (ipLong & maskLong) >>> 0;
         const bcastLong = (netLong | (~maskLong)) >>> 0;
 
@@ -73,12 +124,18 @@
         const firstHost = prefix <= 30 ? longToIp(netLong + 1) : longToIp(netLong);
         const lastHost = prefix <= 30 ? longToIp(bcastLong - 1) : longToIp(bcastLong);
 
-        // 顯示結果
+        // 顯示十進制結果
         document.getElementById('resMask').innerText = longToIp(maskLong);
         document.getElementById('resNet').innerText = longToIp(netLong) + " /" + prefix;
+        document.getElementById('resID').innerText = longToIp(netLong);
         document.getElementById('resBcast').innerText = longToIp(bcastLong);
         document.getElementById('resRange').innerText = `${firstHost} - ${lastHost}`;
         document.getElementById('resCount').innerText = hostCount.toLocaleString();
+
+        // 顯示二進制結果
+        document.getElementById('resMaskBin').innerText = longToBinary(maskLong);
+        document.getElementById('resIDBin').innerText = longToBinary(netLong);
+        document.getElementById('resBcastBin').innerText = longToBinary(bcastLong);
         
         document.getElementById('resultArea').style.display = 'block';
     }
